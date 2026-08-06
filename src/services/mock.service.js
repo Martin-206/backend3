@@ -6,13 +6,31 @@ import {
   generateMockUser,
 } from '../mocks/index.js';
 import MockRepository from '../repositories/mock.repository.js';
-import { AppError } from '../utils/app-error.js';
+import { CustomError } from '../errors/custom-error.js';
+import { ERROR_CODES } from '../errors/error-codes.js';
 
 const DEFAULT_COUNTS = Object.freeze({ users: 10, drivers: 5, orders: 20 });
 const MAX_COUNTS = Object.freeze({ users: 100, drivers: 50, orders: 200 });
+const ALLOWED_FIELDS = Object.freeze(Object.keys(DEFAULT_COUNTS));
 
 class MockService {
   static normalizeCounts(input = {}) {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      throw CustomError.create(ERROR_CODES.INVALID_MOCK_COUNTS, {
+        reason: 'El cuerpo o query debe ser un objeto.',
+      });
+    }
+
+    const unknownFields = Object.keys(input).filter(
+      (field) => !ALLOWED_FIELDS.includes(field),
+    );
+    if (unknownFields.length > 0) {
+      throw CustomError.create(ERROR_CODES.INVALID_MOCK_COUNTS, {
+        unknownFields,
+        allowedFields: ALLOWED_FIELDS,
+      });
+    }
+
     const counts = {
       users: Number(input.users ?? DEFAULT_COUNTS.users),
       drivers: Number(input.drivers ?? DEFAULT_COUNTS.drivers),
@@ -21,15 +39,17 @@ class MockService {
 
     for (const [name, value] of Object.entries(counts)) {
       if (!Number.isInteger(value) || value < 0 || value > MAX_COUNTS[name]) {
-        throw new AppError(
-          `${name} debe ser un entero entre 0 y ${MAX_COUNTS[name]}.`,
-          400,
-        );
+        throw CustomError.create(ERROR_CODES.INVALID_MOCK_COUNTS, {
+          field: name,
+          received: input[name],
+          min: 0,
+          max: MAX_COUNTS[name],
+        });
       }
     }
 
     if (counts.orders > 0 && counts.users === 0) {
-      throw new AppError('Para generar pedidos debe existir al menos un usuario.', 400);
+      throw CustomError.create(ERROR_CODES.MOCK_USERS_REQUIRED);
     }
 
     return counts;
@@ -74,53 +94,56 @@ class MockService {
   static async insertTestData(input = {}) {
     const dataset = this.generateDataset(input);
 
-    const userDocuments = [...dataset.users, ...dataset.driverUsers];
-    const insertedUsers = await MockRepository.insertUsers(
-      userDocuments.map(({ mockKey, ...user }) => user),
-    );
+    try {
+      const userDocuments = [...dataset.users, ...dataset.driverUsers];
+      const insertedUsers = await MockRepository.insertUsers(
+        userDocuments.map(({ mockKey, ...user }) => user),
+      );
 
-    const userIdByMockKey = new Map(
-      userDocuments.map((user, index) => [user.mockKey, insertedUsers[index]._id]),
-    );
+      const userIdByMockKey = new Map(
+        userDocuments.map((user, index) => [user.mockKey, insertedUsers[index]._id]),
+      );
 
-    const insertedDrivers = await MockRepository.insertDrivers(
-      dataset.drivers.map(({ mockKey, userMockKey, ...driver }) => ({
-        ...driver,
-        user: userIdByMockKey.get(userMockKey),
-      })),
-    );
+      const insertedDrivers = await MockRepository.insertDrivers(
+        dataset.drivers.map(({ mockKey, userMockKey, ...driver }) => ({
+          ...driver,
+          user: userIdByMockKey.get(userMockKey),
+        })),
+      );
 
-    const driverIdByMockKey = new Map(
-      dataset.drivers.map((driver, index) => [driver.mockKey, insertedDrivers[index]._id]),
-    );
+      const driverIdByMockKey = new Map(
+        dataset.drivers.map((driver, index) => [driver.mockKey, insertedDrivers[index]._id]),
+      );
 
-    const insertedOrders = await MockRepository.insertOrders(
-      dataset.orders.map(({ mockKey, userMockKey, ...order }) => ({
-        ...order,
-        user: userIdByMockKey.get(userMockKey),
-      })),
-    );
+      const insertedOrders = await MockRepository.insertOrders(
+        dataset.orders.map(({ mockKey, userMockKey, ...order }) => ({
+          ...order,
+          user: userIdByMockKey.get(userMockKey),
+        })),
+      );
 
-    const orderIdByMockKey = new Map(
-      dataset.orders.map((order, index) => [order.mockKey, insertedOrders[index]._id]),
-    );
+      const orderIdByMockKey = new Map(
+        dataset.orders.map((order, index) => [order.mockKey, insertedOrders[index]._id]),
+      );
 
-    const insertedDeliveries = await MockRepository.insertDeliveries(
-      dataset.deliveries.map(
-        ({ mockKey, orderMockKey, driverMockKey, ...delivery }) => ({
+      const insertedDeliveries = await MockRepository.insertDeliveries(
+        dataset.deliveries.map(({ mockKey, orderMockKey, driverMockKey, ...delivery }) => ({
           ...delivery,
           order: orderIdByMockKey.get(orderMockKey),
           driver: driverMockKey ? driverIdByMockKey.get(driverMockKey) : null,
-        }),
-      ),
-    );
+        })),
+      );
 
-    return {
-      users: insertedUsers.length,
-      drivers: insertedDrivers.length,
-      orders: insertedOrders.length,
-      deliveries: insertedDeliveries.length,
-    };
+      return {
+        users: insertedUsers.length,
+        drivers: insertedDrivers.length,
+        orders: insertedOrders.length,
+        deliveries: insertedDeliveries.length,
+      };
+    } catch (error) {
+      if (error?.code === 11000 || error?.name === 'ValidationError') throw error;
+      throw CustomError.create(ERROR_CODES.MOCK_INSERTION_FAILED);
+    }
   }
 }
 

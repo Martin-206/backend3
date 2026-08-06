@@ -1,18 +1,59 @@
+import { config } from '../config/index.js';
+import { CustomError } from '../errors/custom-error.js';
+import { ERROR_CODES } from '../errors/error-codes.js';
+
+function normalizeError(error) {
+  if (error instanceof CustomError) return error;
+
+  if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
+    return CustomError.create(ERROR_CODES.INVALID_INPUT, {
+      reason: 'El cuerpo JSON está mal formado.',
+    });
+  }
+
+  if (error?.name === 'CastError') {
+    return CustomError.create(ERROR_CODES.INVALID_ID, { field: error.path });
+  }
+
+  if (error?.name === 'ValidationError') {
+    const fields = Object.values(error.errors ?? {}).map((item) => ({
+      field: item.path,
+      message: item.message,
+    }));
+    return CustomError.create(ERROR_CODES.INVALID_INPUT, fields);
+  }
+
+  if (error?.code === 11000) {
+    return CustomError.create(ERROR_CODES.DUPLICATE_RESOURCE, error.keyValue ?? null);
+  }
+
+  return CustomError.create(ERROR_CODES.INTERNAL_ERROR);
+}
+
+export function notFoundHandler(req, res, next) {
+  next(CustomError.create(ERROR_CODES.ROUTE_NOT_FOUND, {
+    method: req.method,
+    path: req.originalUrl,
+  }));
+}
+
 export function errorHandler(error, req, res, next) {
-  if (error.name === 'CastError') {
-    return res.status(400).json({ status: 'error', message: 'El identificador no es válido.' });
+  const normalizedError = normalizeError(error);
+
+  if (normalizedError.statusCode >= 500) {
+    console.error(error);
   }
 
-  if (error.name === 'ValidationError') {
-    return res.status(400).json({ status: 'error', message: error.message });
-  }
+  const response = {
+    status: 'error',
+    error: {
+      code: normalizedError.code,
+      message: normalizedError.message,
+    },
+  };
 
-  if (error.code === 11000) {
-    return res.status(409).json({ status: 'error', message: 'El registro ya existe.' });
-  }
+  if (normalizedError.details) response.error.details = normalizedError.details;
+  if (config.NODE_ENV === 'development' && error?.stack) response.error.stack = error.stack;
 
-  const statusCode = error.statusCode ?? 500;
-  const message = statusCode === 500 ? 'Error interno del servidor.' : error.message;
-  console.error(error);
-  return res.status(statusCode).json({ status: 'error', message });
+  return res.status(normalizedError.statusCode).json(response);
 }

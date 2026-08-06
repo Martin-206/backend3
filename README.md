@@ -1,6 +1,6 @@
-# ShipNow API — Pre-entrega Módulo 1
+# ShipNow API — Pre-entrega Módulo 3
 
-Refactorizacion de los endpoints de **Products** y **Users** utilizando arquitectura de tres capas:
+API desarrollada con arquitectura por capas y un sistema profesional y centralizado de manejo de errores.
 
 ```text
 Route → Controller → Service → Repository → Model → MongoDB
@@ -9,29 +9,57 @@ Route → Controller → Service → Repository → Model → MongoDB
 ## Requisitos
 
 - Node.js 20 o superior.
-- MongoDB local o una conexión de MongoDB Atlas.
+- MongoDB local o MongoDB Atlas.
 
-## Instalación y ejecución
+## Instalación
 
-1. Instalar dependencias:
+```bash
+npm install
+```
 
+Copiar `.env.example` como `.env` y completar:
 
-2. Copiar `.env.example` como `.env`:
+```env
+PORT=8080
+MONGODB_URI=mongodb://127.0.0.1:27017/shipnow
+NODE_ENV=development
+```
 
+Iniciar el proyecto:
 
-3. Completar las variables del `.env`:
+```bash
+npm run dev
+```
 
+## Manejo centralizado de errores
 
-4. Iniciar el proyecto:
+El proyecto incluye:
 
+- `src/errors/error-codes.js`: diccionario inmutable de errores esperados.
+- `src/errors/custom-error.js`: clase de error personalizada.
+- `src/middlewares/error.middleware.js`: normalización y respuesta global.
+- `src/utils/async-handler.js`: deriva automáticamente errores asíncronos al middleware.
+- Middleware 404 para rutas inexistentes.
 
-## Variables de entorno
+Todos los errores responden con el mismo formato:
 
-La validación está centralizada en `src/config/env.config.js`.
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "INVALID_MOCK_COUNTS",
+    "message": "Las cantidades solicitadas para los mocks no son válidas.",
+    "details": {
+      "field": "users",
+      "received": -1,
+      "min": 0,
+      "max": 100
+    }
+  }
+}
+```
 
-
-- Roles: `ADMIN`, `USER`.
-- Estados de producto: `AVAILABLE`, `OUT_OF_STOCK`.
+En `development` se incluye el stack para facilitar la depuración. En otros entornos no se expone.
 
 ## Endpoints
 
@@ -45,7 +73,7 @@ La validación está centralizada en `src/config/env.config.js`.
 | PATCH | `/api/products/:id` | Actualizar un producto |
 | DELETE | `/api/products/:id` | Eliminar lógicamente un producto |
 
-Filtros opcionales para el listado: `category`, `status` y `search`.
+Filtros opcionales: `category`, `status` y `search`.
 
 ### Users
 
@@ -57,31 +85,80 @@ Filtros opcionales para el listado: `category`, `status` y `search`.
 | PATCH | `/api/users/:id` | Actualizar un usuario |
 | DELETE | `/api/users/:id` | Eliminar lógicamente un usuario |
 
-Filtros opcionales para el listado: `role` y `search`.
+Filtros opcionales: `role` y `search`.
 
-## Ejemplos de cuerpos JSON
+### Mocks
 
-### Crear producto
+#### Vista previa sin guardar
+
+```http
+GET /api/mocks?users=10&drivers=5&orders=20
+```
+
+#### Insertar datos de prueba
+
+```http
+POST /api/mocks/generate-data
+Content-Type: application/json
+```
 
 ```json
 {
-  "title": "Caja",
-  "description": "Caja para envíos",
-  "code": "BOX-M",
-  "price": 2500,
-  "stock": 20,
-  "category": "PACKAGING"
+  "users": 10,
+  "drivers": 5,
+  "orders": 20
 }
 ```
 
-### Crear usuario
+Límites permitidos:
 
-```json
-{
-  "first_name": "Martín",
-  "last_name": "Contreras",
-  "email": "martin@example.com",
-  "password": "clave123",
-  "role": "USER"
-}
+- `users`: entre 0 y 100.
+- `drivers`: entre 0 y 50.
+- `orders`: entre 0 y 200.
+- Si `orders` es mayor que 0, `users` debe ser al menos 1.
+- No se aceptan campos desconocidos en la configuración de mocks.
+
+## Ejemplos de errores para probar
+
+Cantidad negativa:
+
+```http
+GET /api/mocks?users=-1
 ```
+
+Cantidad mayor al máximo:
+
+```http
+GET /api/mocks?orders=500
+```
+
+Pedidos sin usuarios:
+
+```http
+GET /api/mocks?users=0&orders=10
+```
+
+Rol inválido:
+
+```http
+GET /api/users?role=SUPERVISOR
+```
+
+Identificador inválido:
+
+```http
+GET /api/products/abc
+```
+
+Ruta inexistente:
+
+```http
+GET /api/no-existe
+```
+
+## Separación de responsabilidades
+
+- **Controller:** recibe `req`, llama al Service y devuelve la respuesta HTTP exitosa.
+- **Service:** valida reglas de negocio y lanza errores personalizados.
+- **Repository:** concentra el acceso a Mongoose y MongoDB.
+- **Middleware global:** transforma todos los errores esperados y técnicos en respuestas uniformes.

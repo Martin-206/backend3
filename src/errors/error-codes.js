@@ -1,0 +1,16 @@
+export const ERROR_CODES = Object.freeze({
+  INVALID_INPUT: Object.freeze({ code: 'INVALID_INPUT', statusCode: 400, message: 'Los datos enviados no son válidos.' }),
+  INVALID_ID: Object.freeze({ code: 'INVALID_ID', statusCode: 400, message: 'El identificador enviado no es válido.' }),
+  INVALID_ROLE: Object.freeze({ code: 'INVALID_ROLE', statusCode: 400, message: 'El rol indicado no es válido.' }),
+  INVALID_PRODUCT_STATUS: Object.freeze({ code: 'INVALID_PRODUCT_STATUS', statusCode: 400, message: 'El estado de producto indicado no es válido.' }),
+  INVALID_MOCK_COUNTS: Object.freeze({ code: 'INVALID_MOCK_COUNTS', statusCode: 400, message: 'Las cantidades solicitadas para los mocks no son válidas.' }),
+  MOCK_USERS_REQUIRED: Object.freeze({ code: 'MOCK_USERS_REQUIRED', statusCode: 400, message: 'Para generar pedidos debe existir al menos un usuario.' }),
+  USER_NOT_FOUND: Object.freeze({ code: 'USER_NOT_FOUND', statusCode: 404, message: 'Usuario no encontrado.' }),
+  PRODUCT_NOT_FOUND: Object.freeze({ code: 'PRODUCT_NOT_FOUND', statusCode: 404, message: 'Producto no encontrado.' }),
+  ROUTE_NOT_FOUND: Object.freeze({ code: 'ROUTE_NOT_FOUND', statusCode: 404, message: 'La ruta solicitada no existe.' }),
+  EMAIL_ALREADY_EXISTS: Object.freeze({ code: 'EMAIL_ALREADY_EXISTS', statusCode: 409, message: 'El email ya está registrado.' }),
+  PRODUCT_CODE_ALREADY_EXISTS: Object.freeze({ code: 'PRODUCT_CODE_ALREADY_EXISTS', statusCode: 409, message: 'Ya existe un producto con ese código.' }),
+  DUPLICATE_RESOURCE: Object.freeze({ code: 'DUPLICATE_RESOURCE', statusCode: 409, message: 'El registro ya existe.' }),
+  MOCK_INSERTION_FAILED: Object.freeze({ code: 'MOCK_INSERTION_FAILED', statusCode: 500, message: 'No se pudieron insertar los datos de prueba.' }),
+  INTERNAL_ERROR: Object.freeze({ code: 'INTERNAL_ERROR', statusCode: 500, message: 'Error interno del servidor.' }),
+});
