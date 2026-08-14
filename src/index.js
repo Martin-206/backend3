@@ -1,14 +1,18 @@
 import express from 'express';
 import { config } from './config/index.js';
 import { connectDB } from './config/db.js';
+import { logger } from './config/logger.js';
 import productsRoutes from './routes/products.routes.js';
 import usersRoutes from './routes/users.routes.js';
 import mocksRoutes from './routes/mocks.routes.js';
+import loggerRoutes from './routes/logger.routes.js';
+import { requestLogger } from './middlewares/request-logger.middleware.js';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
 
-
 const app = express();
+
 app.use(express.json());
+app.use(requestLogger);
 
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -21,19 +25,19 @@ app.get('/health', (req, res) => {
 app.use('/api/products', productsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/mocks', mocksRoutes);
+app.use('/api/logger', loggerRoutes);
 
 app.use(notFoundHandler);
-
 app.use(errorHandler);
 
 async function startServer() {
   try {
     await connectDB();
     app.listen(config.PORT, () => {
-      console.log(`Servidor ejecutándose en el puerto ${config.PORT}`);
+      logger.info(`Servidor ShipNow escuchando en el puerto ${config.PORT}`);
     });
   } catch (error) {
-    console.error(`No se pudo iniciar ShipNow: ${error.message}`);
+    logger.fatal('No se pudo iniciar ShipNow', { error: error.message });
     process.exit(1);
   }
 }
