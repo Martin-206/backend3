@@ -4,7 +4,8 @@ import { connectDB } from './config/db.js';
 import productsRoutes from './routes/products.routes.js';
 import usersRoutes from './routes/users.routes.js';
 import mocksRoutes from './routes/mocks.routes.js';
-import { errorHandler } from './middlewares/error.middleware.js';
+import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
+
 
 const app = express();
 app.use(express.json());
@@ -20,6 +21,9 @@ app.get('/health', (req, res) => {
 app.use('/api/products', productsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/mocks', mocksRoutes);
+
+app.use(notFoundHandler);
+
 app.use(errorHandler);
 
 async function startServer() {
