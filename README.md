@@ -31,17 +31,33 @@ Iniciar el proyecto:
 npm run dev
 ```
 
+## Integración del logger
+
+El logger se utiliza para registrar eventos relevantes:
+
+- conexión exitosa a MongoDB;
+- falla crítica de conexión o arranque;
+- inicio correcto del servidor;
+- peticiones HTTP en desarrollo;
+- rutas inexistentes y errores esperados como `warning`;
+- errores inesperados como `error`;
+- generación de datos mock;
+- cantidades inválidas en mocks;
+- inserción exitosa o fallida de datos de prueba.
+
+El logger complementa al middleware global de errores; las respuestas HTTP siguen manteniendo el formato uniforme del Módulo 3.
+
 ## Manejo centralizado de errores
 
 El proyecto incluye:
 
 - `src/errors/error-codes.js`: diccionario inmutable de errores esperados.
 - `src/errors/custom-error.js`: clase de error personalizada.
-- `src/middlewares/error.middleware.js`: normalización y respuesta global.
-- `src/utils/async-handler.js`: deriva automáticamente errores asíncronos al middleware.
+- `src/middlewares/error.middleware.js`: normalización, logging y respuesta global.
+- `src/utils/async-handler.js`: deriva errores asíncronos al middleware.
 - Middleware 404 para rutas inexistentes.
 
-Todos los errores responden con el mismo formato:
+Formato de error:
 
 ```json
 {
@@ -51,7 +67,7 @@ Todos los errores responden con el mismo formato:
     "message": "Las cantidades solicitadas para los mocks no son válidas.",
     "details": {
       "field": "users",
-      "received": -1,
+      "received": "-1",
       "min": 0,
       "max": 100
     }
@@ -59,7 +75,7 @@ Todos los errores responden con el mismo formato:
 }
 ```
 
-En `development` se incluye el stack para facilitar la depuración. En otros entornos no se expone.
+En `development` se incluye el stack para facilitar depuración. En producción no se expone.
 
 ## Endpoints
 

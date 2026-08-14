@@ -1,4 +1,5 @@
 import { config } from '../config/index.js';
+import { logger } from '../config/logger.js';
 import { CustomError } from '../errors/custom-error.js';
 import { ERROR_CODES } from '../errors/error-codes.js';
 
@@ -31,6 +32,11 @@ function normalizeError(error) {
 }
 
 export function notFoundHandler(req, res, next) {
+  logger.warning('Ruta inexistente solicitada', {
+    method: req.method,
+    path: req.originalUrl,
+  });
+
   next(CustomError.create(ERROR_CODES.ROUTE_NOT_FOUND, {
     method: req.method,
     path: req.originalUrl,
@@ -40,8 +46,18 @@ export function notFoundHandler(req, res, next) {
 export function errorHandler(error, req, res, next) {
   const normalizedError = normalizeError(error);
 
+  const logMetadata = {
+    code: normalizedError.code,
+    statusCode: normalizedError.statusCode,
+    method: req.method,
+    path: req.originalUrl,
+    details: normalizedError.details ?? undefined,
+  };
+
   if (normalizedError.statusCode >= 500) {
-    console.error(error);
+    logger.error(error?.stack ?? normalizedError.message, logMetadata);
+  } else {
+    logger.warning(normalizedError.message, logMetadata);
   }
 
   const response = {

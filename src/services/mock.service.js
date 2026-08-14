@@ -8,6 +8,7 @@ import {
 import MockRepository from '../repositories/mock.repository.js';
 import { CustomError } from '../errors/custom-error.js';
 import { ERROR_CODES } from '../errors/error-codes.js';
+import { logger } from '../config/logger.js';
 
 const DEFAULT_COUNTS = Object.freeze({ users: 10, drivers: 5, orders: 20 });
 const MAX_COUNTS = Object.freeze({ users: 100, drivers: 50, orders: 200 });
@@ -16,6 +17,7 @@ const ALLOWED_FIELDS = Object.freeze(Object.keys(DEFAULT_COUNTS));
 class MockService {
   static normalizeCounts(input = {}) {
     if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      logger.warning('Configuración de mocks inválida: se esperaba un objeto');
       throw CustomError.create(ERROR_CODES.INVALID_MOCK_COUNTS, {
         reason: 'El cuerpo o query debe ser un objeto.',
       });
@@ -25,6 +27,7 @@ class MockService {
       (field) => !ALLOWED_FIELDS.includes(field),
     );
     if (unknownFields.length > 0) {
+      logger.warning('Configuración de mocks con campos desconocidos', { unknownFields });
       throw CustomError.create(ERROR_CODES.INVALID_MOCK_COUNTS, {
         unknownFields,
         allowedFields: ALLOWED_FIELDS,
@@ -39,6 +42,12 @@ class MockService {
 
     for (const [name, value] of Object.entries(counts)) {
       if (!Number.isInteger(value) || value < 0 || value > MAX_COUNTS[name]) {
+        logger.warning('Cantidad inválida solicitada para mocks', {
+          field: name,
+          received: input[name],
+          min: 0,
+          max: MAX_COUNTS[name],
+        });
         throw CustomError.create(ERROR_CODES.INVALID_MOCK_COUNTS, {
           field: name,
           received: input[name],
@@ -49,6 +58,7 @@ class MockService {
     }
 
     if (counts.orders > 0 && counts.users === 0) {
+      logger.warning('No se pueden generar pedidos mock sin usuarios', counts);
       throw CustomError.create(ERROR_CODES.MOCK_USERS_REQUIRED);
     }
 
@@ -77,18 +87,27 @@ class MockService {
       return generateMockDelivery(order.mockKey, driver?.mockKey ?? null);
     });
 
+    logger.debug('Dataset mock generado en memoria', counts);
     return { users, driverUsers, drivers, orders, deliveries };
   }
 
   static getPreview(input = {}) {
     const dataset = this.generateDataset(input);
-
-    return {
+    const preview = {
       users: [...dataset.users, ...dataset.driverUsers].map(({ password, ...user }) => user),
       drivers: dataset.drivers,
       orders: dataset.orders,
       deliveries: dataset.deliveries,
     };
+
+    logger.info('Vista previa de datos mock generada', {
+      users: preview.users.length,
+      drivers: preview.drivers.length,
+      orders: preview.orders.length,
+      deliveries: preview.deliveries.length,
+    });
+
+    return preview;
   }
 
   static async insertTestData(input = {}) {
@@ -134,13 +153,17 @@ class MockService {
         })),
       );
 
-      return {
+      const result = {
         users: insertedUsers.length,
         drivers: insertedDrivers.length,
         orders: insertedOrders.length,
         deliveries: insertedDeliveries.length,
       };
+
+      logger.info('Datos mock insertados correctamente en MongoDB', result);
+      return result;
     } catch (error) {
+      logger.error('Falló la inserción de datos mock', { error: error.message });
       if (error?.code === 11000 || error?.name === 'ValidationError') throw error;
       throw CustomError.create(ERROR_CODES.MOCK_INSERTION_FAILED);
     }
