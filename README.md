@@ -178,3 +178,7 @@ GET /api/no-existe
 - **Service:** valida reglas de negocio y lanza errores personalizados.
 - **Repository:** concentra el acceso a Mongoose y MongoDB.
 - **Middleware global:** transforma todos los errores esperados y técnicos en respuestas uniformes.
+
+
+## Pd profe...
+- agregado en el index notfound para paginas no encontradas
