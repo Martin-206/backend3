@@ -1,0 +1,143 @@
+paths:
+  /api/users:
+    get:
+      tags: [Users]
+      summary: Listar usuarios activos
+      description: Permite filtrar por rol y realizar búsquedas por nombre, apellido o email.
+      parameters:
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum: [ADMIN, USER, DRIVER]
+          description: Rol válido del usuario.
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Texto de búsqueda.
+      responses:
+        '200':
+          description: Lista obtenida correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  payload:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '500':
+          $ref: '#/components/responses/InternalErrorResponse'
+
+    post:
+      tags: [Users]
+      summary: Crear un usuario
+      description: Crea un usuario con un rol permitido. El email debe ser único.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+      responses:
+        '201':
+          description: Usuario creado correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  payload:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '409':
+          $ref: '#/components/responses/ConflictResponse'
+        '500':
+          $ref: '#/components/responses/InternalErrorResponse'
+
+  /api/users/{id}:
+    get:
+      tags: [Users]
+      summary: Obtener un usuario por id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+          description: ObjectId de MongoDB.
+      responses:
+        '200':
+          description: Usuario encontrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  payload:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '500':
+          $ref: '#/components/responses/InternalErrorResponse'
+
+    patch:
+      tags: [Users]
+      summary: Actualizar un usuario
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: Usuario actualizado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  payload:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '409':
+          $ref: '#/components/responses/ConflictResponse'
+        '500':
+          $ref: '#/components/responses/InternalErrorResponse'
+
+    delete:
+      tags: [Users]
+      summary: Eliminar lógicamente un usuario
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '204':
+          description: Usuario desactivado correctamente. La respuesta no contiene body.
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '500':
+          $ref: '#/components/responses/InternalErrorResponse'

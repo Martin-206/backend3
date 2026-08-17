@@ -1,0 +1,27 @@
+paths:
+  /api/logger/test:
+    get:
+      tags: [Logger]
+      summary: Probar todos los niveles del logger
+      description: >
+        Endpoint interno de validación. No representa una funcionalidad de negocio.
+        Genera logs debug, http, info, warning, error y fatal para comprobar la configuración de Winston.
+      responses:
+        '200':
+          description: Prueba ejecutada correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  message: { type: string, example: Prueba de logger ejecutada correctamente. }
+                  payload:
+                    type: object
+                    properties:
+                      levels:
+                        type: array
+                        items: { type: string }
+                        example: [debug, http, info, warning, error, fatal]
+        '500':
+          $ref: '#/components/responses/InternalErrorResponse'

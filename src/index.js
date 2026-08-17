@@ -8,6 +8,8 @@ import mocksRoutes from './routes/mocks.routes.js';
 import loggerRoutes from './routes/logger.routes.js';
 import { requestLogger } from './middlewares/request-logger.middleware.js';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpecs from './config/swagger.js';
 
 const app = express();
 
@@ -21,6 +23,12 @@ app.get('/health', (req, res) => {
     environment: config.NODE_ENV,
   });
 });
+
+app.use(
+  '/api/docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpecs)
+);
 
 app.use('/api/products', productsRoutes);
 app.use('/api/users', usersRoutes);

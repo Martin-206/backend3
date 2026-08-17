@@ -1,0 +1,94 @@
+paths:
+  /api/mocks:
+    get:
+      tags: [Mocks, Orders, Deliveries]
+      summary: Generar una vista previa de datos mock
+      description: >
+        Genera usuarios, repartidores, pedidos y entregas relacionados entre sí sin guardar datos en MongoDB.
+        Los pedidos y entregas usan únicamente los estados y prioridades permitidos por las constantes del dominio.
+      parameters:
+        - in: query
+          name: users
+          schema: { type: integer, minimum: 0, maximum: 100, default: 10 }
+          description: Cantidad de usuarios normales a generar.
+        - in: query
+          name: drivers
+          schema: { type: integer, minimum: 0, maximum: 50, default: 5 }
+          description: Cantidad de repartidores a generar.
+        - in: query
+          name: orders
+          schema: { type: integer, minimum: 0, maximum: 200, default: 20 }
+          description: Cantidad de pedidos y entregas a generar. Si es mayor que 0 debe existir al menos un usuario.
+      responses:
+        '200':
+          description: Dataset mock generado en memoria.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  payload:
+                    type: object
+                    properties:
+                      users:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/User'
+                      drivers:
+                        type: array
+                        items:
+                          type: object
+                      orders:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Order'
+                      deliveries:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Delivery'
+        '400':
+          $ref: '#/components/responses/InvalidMockCountsResponse'
+        '500':
+          $ref: '#/components/responses/InternalErrorResponse'
+
+  /api/mocks/generate-data:
+    post:
+      tags: [Mocks, Orders, Deliveries]
+      summary: Insertar datos de prueba en MongoDB
+      description: >
+        Genera e inserta usuarios, repartidores, pedidos y entregas respetando las relaciones entre entidades.
+        Es una herramienta de testing y carga controlada de datos de prueba.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MockCounts'
+            example:
+              users: 10
+              drivers: 5
+              orders: 20
+      responses:
+        '201':
+          description: Datos insertados correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  message: { type: string, example: Datos de prueba insertados correctamente. }
+                  payload:
+                    type: object
+                    properties:
+                      users: { type: integer, example: 15 }
+                      drivers: { type: integer, example: 5 }
+                      orders: { type: integer, example: 20 }
+                      deliveries: { type: integer, example: 20 }
+        '400':
+          $ref: '#/components/responses/InvalidMockCountsResponse'
+        '409':
+          $ref: '#/components/responses/ConflictResponse'
+        '500':
+          $ref: '#/components/responses/InternalErrorResponse'

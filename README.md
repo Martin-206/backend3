@@ -179,6 +179,34 @@ GET /api/no-existe
 - **Repository:** concentra el acceso a Mongoose y MongoDB.
 - **Middleware global:** transforma todos los errores esperados y técnicos en respuestas uniformes.
 
+## Documentación Swagger / OpenAPI
 
-## Pd profe...
-- agregado en el index notfound para paginas no encontradas
+La documentación interactiva se encuentra en:
+
+```text
+http://localhost:3000/api/docs
+```
+
+Si se cambia `PORT` en el archivo `.env`, se debe usar el mismo puerto en la URL.
+
+La configuración está separada de las rutas en `src/config/swagger.js` y la documentación de endpoints se encuentra en archivos YAML dentro de `src/docs/`, siguiendo el mismo enfoque visto en clase.
+
+Módulos documentados:
+
+- **Users:** endpoints CRUD reales de `/api/users`.
+- **Orders:** pedidos generados por los endpoints reales de mocks. Actualmente el proyecto no posee un router CRUD independiente para pedidos.
+- **Deliveries:** entregas generadas por los endpoints reales de mocks. Actualmente el proyecto no posee un router CRUD independiente para entregas.
+- **Mocks:** vista previa e inserción controlada de datos de prueba.
+- **Logger:** endpoint interno `/api/logger/test` para comprobar los niveles de Winston; no es una funcionalidad de negocio.
+
+Schemas reutilizables definidos en Swagger: `User`, `Order`, `Delivery`, `OrderItem`, `SuccessResponse` y `ErrorResponse`. Los estados de pedidos, prioridades, entregas y roles se obtienen de las mismas constantes usadas por la aplicación.
+
+
+
+Para instalar las dependencias de documentación:
+
+```bash
+npm install
+```
+
+Las dependencias utilizadas son `swagger-jsdoc` y `swagger-ui-express`.
