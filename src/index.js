@@ -6,6 +6,8 @@ import productsRoutes from './routes/products.routes.js';
 import usersRoutes from './routes/users.routes.js';
 import mocksRoutes from './routes/mocks.routes.js';
 import loggerRoutes from './routes/logger.routes.js';
+import ordersRoutes from './routes/orders.routes.js';
+import deliveriesRoutes from './routes/deliveries.routes.js';
 import { requestLogger } from './middlewares/request-logger.middleware.js';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
 import swaggerUi from 'swagger-ui-express';
@@ -34,6 +36,8 @@ app.use('/api/products', productsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/mocks', mocksRoutes);
 app.use('/api/logger', loggerRoutes);
+app.use('/api/orders', ordersRoutes);
+app.use('/api/deliveries', deliveriesRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

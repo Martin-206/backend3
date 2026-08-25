@@ -68,6 +68,36 @@ const schemas = {
       status: { type: 'string', enum: Object.values(ORDER_STATUS), example: ORDER_STATUS.PENDING },
       priority: { type: 'string', enum: Object.values(ORDER_PRIORITY), example: ORDER_PRIORITY.NORMAL },
       active: { type: 'boolean', example: true },
+      createdAt: { type: 'string', format: 'date-time' },
+      updatedAt: { type: 'string', format: 'date-time' },
+    },
+  },
+
+  OrderCreateRequest: {
+    type: 'object',
+    required: ['tracking_code', 'user', 'description', 'delivery_address', 'weight_kg'],
+    properties: {
+      tracking_code: { type: 'string', example: 'SN-20260825-001' },
+      user: { type: 'string', example: '66c1234567890abcdef12345' },
+      description: { type: 'string', example: 'Repuestos mecánicos' },
+      delivery_address: { type: 'string', example: 'Av. San Martín 1250' },
+      weight_kg: { type: 'number', minimum: 0.1, example: 4.75 },
+      status: { type: 'string', enum: Object.values(ORDER_STATUS), example: ORDER_STATUS.PENDING },
+      priority: { type: 'string', enum: Object.values(ORDER_PRIORITY), example: ORDER_PRIORITY.NORMAL },
+    },
+  },
+
+  OrderUpdateRequest: {
+    type: 'object',
+    minProperties: 1,
+    properties: {
+      tracking_code: { type: 'string', example: 'SN-20260825-002' },
+      user: { type: 'string', example: '66c1234567890abcdef12345' },
+      description: { type: 'string', example: 'Repuestos mecánicos actualizados' },
+      delivery_address: { type: 'string', example: 'Belgrano 450' },
+      weight_kg: { type: 'number', minimum: 0.1, example: 5.2 },
+      status: { type: 'string', enum: Object.values(ORDER_STATUS), example: ORDER_STATUS.CONFIRMED },
+      priority: { type: 'string', enum: Object.values(ORDER_PRIORITY), example: ORDER_PRIORITY.HIGH },
     },
   },
 
@@ -79,7 +109,36 @@ const schemas = {
       status: { type: 'string', enum: Object.values(DELIVERY_STATUS), example: DELIVERY_STATUS.PENDING },
       estimated_at: { type: 'string', format: 'date-time' },
       delivered_at: { type: 'string', format: 'date-time', nullable: true },
-      notes: { type: 'string', example: 'Entrega generada por el módulo de mocking.' },
+      notes: { type: 'string', example: 'Entregar en recepción.' },
+      active: { type: 'boolean', example: true },
+      createdAt: { type: 'string', format: 'date-time' },
+      updatedAt: { type: 'string', format: 'date-time' },
+    },
+  },
+
+  DeliveryCreateRequest: {
+    type: 'object',
+    required: ['order', 'estimated_at'],
+    properties: {
+      order: { type: 'string', example: '66c1234567890abcdef12345' },
+      driver: { type: 'string', nullable: true, example: '66c1234567890abcdef54321' },
+      status: { type: 'string', enum: Object.values(DELIVERY_STATUS), example: DELIVERY_STATUS.PENDING },
+      estimated_at: { type: 'string', format: 'date-time', example: '2026-08-26T18:00:00.000Z' },
+      delivered_at: { type: 'string', format: 'date-time', nullable: true },
+      notes: { type: 'string', example: 'Entregar en recepción.' },
+    },
+  },
+
+  DeliveryUpdateRequest: {
+    type: 'object',
+    minProperties: 1,
+    properties: {
+      order: { type: 'string' },
+      driver: { type: 'string', nullable: true },
+      status: { type: 'string', enum: Object.values(DELIVERY_STATUS), example: DELIVERY_STATUS.IN_TRANSIT },
+      estimated_at: { type: 'string', format: 'date-time' },
+      delivered_at: { type: 'string', format: 'date-time', nullable: true },
+      notes: { type: 'string' },
     },
   },
 
@@ -166,7 +225,7 @@ const swaggerSpecs = swaggerJSDoc({
       title: 'ShipNow API',
       version: '1.5.0',
       description:
-        'API académica de ShipNow. Documenta usuarios, generación de pedidos y entregas mediante mocks y el endpoint interno de validación del logger.',
+        'API académica de ShipNow con usuarios, pedidos, entregas, mocks, logging y documentación interactiva con Swagger/OpenAPI.',
     },
     servers: [
       {
@@ -176,8 +235,8 @@ const swaggerSpecs = swaggerJSDoc({
     ],
     tags: [
       { name: 'Users', description: 'Gestión de usuarios.' },
-      { name: 'Orders', description: 'Pedidos generados actualmente mediante el módulo de mocks.' },
-      { name: 'Deliveries', description: 'Entregas generadas actualmente mediante el módulo de mocks.' },
+      { name: 'Orders', description: 'Gestión de pedidos.' },
+      { name: 'Deliveries', description: 'Gestión de entregas.' },
       { name: 'Mocks', description: 'Generación y carga controlada de datos de prueba.' },
       { name: 'Logger', description: 'Herramienta interna para validar los niveles del logger.' },
     ],

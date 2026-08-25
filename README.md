@@ -1,6 +1,6 @@
-# ShipNow API — Pre-entrega Módulo 3
+# ShipNow API — Pre-entrega Módulo 5
 
-API desarrollada con arquitectura por capas y un sistema profesional y centralizado de manejo de errores.
+API académica desarrollada con Node.js, Express y MongoDB. El proyecto mantiene arquitectura por capas, mocking, manejo centralizado de errores, logging con Winston y documentación interactiva con Swagger/OpenAPI.
 
 ```text
 Route → Controller → Service → Repository → Model → MongoDB
@@ -31,53 +31,137 @@ Iniciar el proyecto:
 npm run dev
 ```
 
-## Integración del logger
+Health check:
 
-El logger se utiliza para registrar eventos relevantes:
+```http
+GET /health
+```
 
-- conexión exitosa a MongoDB;
-- falla crítica de conexión o arranque;
-- inicio correcto del servidor;
-- peticiones HTTP en desarrollo;
-- rutas inexistentes y errores esperados como `warning`;
-- errores inesperados como `error`;
-- generación de datos mock;
-- cantidades inválidas en mocks;
-- inserción exitosa o fallida de datos de prueba.
+## Documentación Swagger / OpenAPI
 
-El logger complementa al middleware global de errores; las respuestas HTTP siguen manteniendo el formato uniforme del Módulo 3.
+Con el servidor iniciado, Swagger UI está disponible en:
 
-## Manejo centralizado de errores
+```text
+http://localhost:8080/api/docs
+```
 
-El proyecto incluye:
+Si se modifica `PORT` en `.env`, debe utilizarse ese mismo puerto.
 
-- `src/errors/error-codes.js`: diccionario inmutable de errores esperados.
-- `src/errors/custom-error.js`: clase de error personalizada.
-- `src/middlewares/error.middleware.js`: normalización, logging y respuesta global.
-- `src/utils/async-handler.js`: deriva errores asíncronos al middleware.
-- Middleware 404 para rutas inexistentes.
+La configuración general está separada en:
 
-Formato de error:
+```text
+src/config/swagger.js
+```
+
+La documentación de endpoints se encuentra en archivos YAML:
+
+```text
+src/docs/
+├── users.yaml
+├── orders.yaml
+├── deliveries.yaml
+├── mocks.yaml
+└── logger.yaml
+```
+
+Los módulos documentados están organizados con los tags **Users, Orders, Deliveries, Mocks y Logger**.
+
+Swagger incluye schemas reutilizables para usuarios, pedidos, entregas, item de pedido, respuestas exitosas y respuestas de error. Los roles, estados y prioridades se obtienen de las constantes reales del proyecto.
+
+## Endpoints
+
+### Users
+
+| Método | Ruta | Acción |
+|---|---|---|
+| GET | `/api/users` | Listar usuarios activos |
+| GET | `/api/users/:id` | Obtener un usuario por id |
+| POST | `/api/users` | Crear un usuario |
+| PATCH | `/api/users/:id` | Actualizar un usuario |
+| DELETE | `/api/users/:id` | Eliminar lógicamente un usuario |
+
+Filtros opcionales: `role` y `search`.
+
+### Orders
+
+| Método | Ruta | Acción |
+|---|---|---|
+| GET | `/api/orders` | Listar pedidos activos |
+| GET | `/api/orders/:id` | Obtener un pedido por id |
+| POST | `/api/orders` | Crear un pedido |
+| PATCH | `/api/orders/:id` | Actualizar un pedido |
+| DELETE | `/api/orders/:id` | Eliminar lógicamente un pedido |
+
+Filtros opcionales: `status`, `priority`, `user` y `search`.
+
+Estados permitidos:
+
+```text
+PENDING, CONFIRMED, IN_TRANSIT, DELIVERED, CANCELLED
+```
+
+Prioridades permitidas:
+
+```text
+LOW, NORMAL, HIGH, URGENT
+```
+
+Ejemplo de creación:
+
+```http
+POST /api/orders
+Content-Type: application/json
+```
 
 ```json
 {
-  "status": "error",
-  "error": {
-    "code": "INVALID_MOCK_COUNTS",
-    "message": "Las cantidades solicitadas para los mocks no son válidas.",
-    "details": {
-      "field": "users",
-      "received": "-1",
-      "min": 0,
-      "max": 100
-    }
-  }
+  "tracking_code": "SN-20260825-001",
+  "user": "OBJECT_ID_DE_UN_USUARIO",
+  "description": "Repuestos mecánicos",
+  "delivery_address": "Av. San Martín 1250",
+  "weight_kg": 4.75,
+  "status": "PENDING",
+  "priority": "NORMAL"
 }
 ```
 
-En `development` se incluye el stack para facilitar depuración. En producción no se expone.
+El usuario debe existir y `tracking_code` debe ser único.
 
-## Endpoints
+### Deliveries
+
+| Método | Ruta | Acción |
+|---|---|---|
+| GET | `/api/deliveries` | Listar entregas activas |
+| GET | `/api/deliveries/:id` | Obtener una entrega por id |
+| POST | `/api/deliveries` | Crear una entrega |
+| PATCH | `/api/deliveries/:id` | Actualizar una entrega |
+| DELETE | `/api/deliveries/:id` | Eliminar lógicamente una entrega |
+
+Filtros opcionales: `status`, `driver` y `order`.
+
+Estados permitidos:
+
+```text
+PENDING, ASSIGNED, IN_TRANSIT, DELIVERED, FAILED
+```
+
+Ejemplo de creación sin repartidor asignado:
+
+```http
+POST /api/deliveries
+Content-Type: application/json
+```
+
+```json
+{
+  "order": "OBJECT_ID_DE_UN_PEDIDO",
+  "status": "PENDING",
+  "estimated_at": "2026-08-26T18:00:00.000Z",
+  "notes": "Entregar en recepción"
+}
+```
+
+El pedido debe existir. Si se envía `driver`, el repartidor también debe existir. Cada pedido puede tener una única entrega asociada.
 
 ### Products
 
@@ -91,27 +175,15 @@ En `development` se incluye el stack para facilitar depuración. En producción 
 
 Filtros opcionales: `category`, `status` y `search`.
 
-### Users
-
-| Método | Ruta | Acción |
-|---|---|---|
-| GET | `/api/users` | Listar usuarios activos |
-| GET | `/api/users/:id` | Obtener un usuario |
-| POST | `/api/users` | Crear un usuario |
-| PATCH | `/api/users/:id` | Actualizar un usuario |
-| DELETE | `/api/users/:id` | Eliminar lógicamente un usuario |
-
-Filtros opcionales: `role` y `search`.
-
 ### Mocks
 
-#### Vista previa sin guardar
+Vista previa sin guardar:
 
 ```http
 GET /api/mocks?users=10&drivers=5&orders=20
 ```
 
-#### Insertar datos de prueba
+Insertar datos de prueba:
 
 ```http
 POST /api/mocks/generate-data
@@ -126,87 +198,65 @@ Content-Type: application/json
 }
 ```
 
-Límites permitidos:
+Límites:
 
-- `users`: entre 0 y 100.
-- `drivers`: entre 0 y 50.
-- `orders`: entre 0 y 200.
-- Si `orders` es mayor que 0, `users` debe ser al menos 1.
-- No se aceptan campos desconocidos en la configuración de mocks.
+- `users`: 0 a 100.
+- `drivers`: 0 a 50.
+- `orders`: 0 a 200.
+- Si `orders` es mayor que 0, debe existir al menos un usuario.
+- No se aceptan campos desconocidos.
 
-## Ejemplos de errores para probar
-
-Cantidad negativa:
+### Logger
 
 ```http
-GET /api/mocks?users=-1
+GET /api/logger/test
 ```
 
-Cantidad mayor al máximo:
+Es una herramienta interna para validar los niveles `debug`, `http`, `info`, `warning`, `error` y `fatal`; no representa una funcionalidad de negocio.
 
-```http
-GET /api/mocks?orders=500
+## Manejo centralizado de errores
+
+El proyecto utiliza:
+
+- `src/errors/error-codes.js`: diccionario de errores.
+- `src/errors/custom-error.js`: error personalizado.
+- `src/middlewares/error.middleware.js`: middleware global.
+- `src/utils/async-handler.js`: derivación de errores asíncronos.
+
+Formato general:
+
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "INVALID_ORDER_STATUS",
+    "message": "El estado del pedido indicado no es válido.",
+    "details": {
+      "allowedValues": ["PENDING", "CONFIRMED", "IN_TRANSIT", "DELIVERED", "CANCELLED"]
+    }
+  }
+}
 ```
 
-Pedidos sin usuarios:
+Entre los errores controlados se encuentran datos inválidos, ids inválidos, recursos inexistentes, estados o prioridades inválidas, duplicados y cantidades incorrectas de mocks.
 
-```http
-GET /api/mocks?users=0&orders=10
+## Logging
+
+Winston registra eventos relevantes del servidor, conexión a MongoDB, errores, mocks y operaciones importantes de pedidos y entregas.
+
+Los archivos rotados de error se guardan en:
+
+```text
+logs/
 ```
 
-Rol inválido:
-
-```http
-GET /api/users?role=SUPERVISOR
-```
-
-Identificador inválido:
-
-```http
-GET /api/products/abc
-```
-
-Ruta inexistente:
-
-```http
-GET /api/no-existe
-```
+La carpeta está excluida del repositorio mediante `.gitignore`.
 
 ## Separación de responsabilidades
 
-- **Controller:** recibe `req`, llama al Service y devuelve la respuesta HTTP exitosa.
-- **Service:** valida reglas de negocio y lanza errores personalizados.
-- **Repository:** concentra el acceso a Mongoose y MongoDB.
-- **Middleware global:** transforma todos los errores esperados y técnicos en respuestas uniformes.
-
-## Documentación Swagger / OpenAPI
-
-La documentación interactiva se encuentra en:
-
-```text
-http://localhost:3000/api/docs
-```
-
-Si se cambia `PORT` en el archivo `.env`, se debe usar el mismo puerto en la URL.
-
-La configuración está separada de las rutas en `src/config/swagger.js` y la documentación de endpoints se encuentra en archivos YAML dentro de `src/docs/`, siguiendo el mismo enfoque visto en clase.
-
-Módulos documentados:
-
-- **Users:** endpoints CRUD reales de `/api/users`.
-- **Orders:** pedidos generados por los endpoints reales de mocks. Actualmente el proyecto no posee un router CRUD independiente para pedidos.
-- **Deliveries:** entregas generadas por los endpoints reales de mocks. Actualmente el proyecto no posee un router CRUD independiente para entregas.
-- **Mocks:** vista previa e inserción controlada de datos de prueba.
-- **Logger:** endpoint interno `/api/logger/test` para comprobar los niveles de Winston; no es una funcionalidad de negocio.
-
-Schemas reutilizables definidos en Swagger: `User`, `Order`, `Delivery`, `OrderItem`, `SuccessResponse` y `ErrorResponse`. Los estados de pedidos, prioridades, entregas y roles se obtienen de las mismas constantes usadas por la aplicación.
-
-
-
-Para instalar las dependencias de documentación:
-
-```bash
-npm install
-```
-
-Las dependencias utilizadas son `swagger-jsdoc` y `swagger-ui-express`.
+- **Controller:** recibe `req`, llama al Service y construye la respuesta HTTP.
+- **Service:** contiene validaciones y reglas de negocio.
+- **Repository:** único lugar que accede a Mongoose/MongoDB.
+- **Model:** define los schemas de persistencia.
+- **Middleware global:** normaliza errores y mantiene respuestas consistentes.
+- **Swagger:** documenta la API sin mezclar la configuración con la lógica de las rutas.

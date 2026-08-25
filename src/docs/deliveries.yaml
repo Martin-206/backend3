@@ -1,0 +1,146 @@
+paths:
+  /api/deliveries:
+    get:
+      tags: [Deliveries]
+      summary: Listar entregas activas
+      description: Permite filtrar por estado, repartidor o pedido.
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [PENDING, ASSIGNED, IN_TRANSIT, DELIVERED, FAILED]
+        - in: query
+          name: driver
+          schema: { type: string }
+          description: ObjectId del repartidor.
+        - in: query
+          name: order
+          schema: { type: string }
+          description: ObjectId del pedido.
+      responses:
+        '200':
+          description: Lista de entregas obtenida correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  payload:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Delivery'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '500':
+          $ref: '#/components/responses/InternalErrorResponse'
+
+    post:
+      tags: [Deliveries]
+      summary: Crear una entrega
+      description: Crea una entrega para un pedido existente. Cada pedido puede tener una sola entrega activa.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeliveryCreateRequest'
+      responses:
+        '201':
+          description: Entrega creada correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  payload:
+                    $ref: '#/components/schemas/Delivery'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '409':
+          $ref: '#/components/responses/ConflictResponse'
+        '500':
+          $ref: '#/components/responses/InternalErrorResponse'
+
+  /api/deliveries/{id}:
+    get:
+      tags: [Deliveries]
+      summary: Obtener una entrega por id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Entrega encontrada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  payload:
+                    $ref: '#/components/schemas/Delivery'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '500':
+          $ref: '#/components/responses/InternalErrorResponse'
+
+    patch:
+      tags: [Deliveries]
+      summary: Actualizar una entrega
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeliveryUpdateRequest'
+      responses:
+        '200':
+          description: Entrega actualizada correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  payload:
+                    $ref: '#/components/schemas/Delivery'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '409':
+          $ref: '#/components/responses/ConflictResponse'
+        '500':
+          $ref: '#/components/responses/InternalErrorResponse'
+
+    delete:
+      tags: [Deliveries]
+      summary: Eliminar lógicamente una entrega
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '204':
+          description: Entrega desactivada correctamente. Sin body.
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '500':
+          $ref: '#/components/responses/InternalErrorResponse'
