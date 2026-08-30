@@ -5,6 +5,7 @@ import {
   ORDER_PRIORITY,
   ORDER_STATUS,
   USER_ROLES,
+  USER_DOCUMENT_TYPES,
 } from '../constants/index.js';
 
 const schemas = {
@@ -18,6 +19,7 @@ const schemas = {
       email: { type: 'string', format: 'email', example: 'martin@shipnow.test' },
       role: { type: 'string', enum: Object.values(USER_ROLES), example: USER_ROLES.USER },
       active: { type: 'boolean', example: true },
+      documents: { type: 'array', items: { $ref: '#/components/schemas/FileMetadata' } },
       createdAt: { type: 'string', format: 'date-time' },
       updatedAt: { type: 'string', format: 'date-time' },
     },
@@ -111,6 +113,7 @@ const schemas = {
       delivered_at: { type: 'string', format: 'date-time', nullable: true },
       notes: { type: 'string', example: 'Entregar en recepción.' },
       active: { type: 'boolean', example: true },
+      proofs: { type: 'array', items: { $ref: '#/components/schemas/FileMetadata' } },
       createdAt: { type: 'string', format: 'date-time' },
       updatedAt: { type: 'string', format: 'date-time' },
     },
@@ -139,6 +142,31 @@ const schemas = {
       estimated_at: { type: 'string', format: 'date-time' },
       delivered_at: { type: 'string', format: 'date-time', nullable: true },
       notes: { type: 'string' },
+    },
+  },
+
+
+  FileMetadata: {
+    type: 'object',
+    description: 'Metadatos persistidos en MongoDB. El contenido binario queda almacenado en disco.',
+    properties: {
+      _id: { type: 'string' },
+      original_name: { type: 'string', example: 'dni-frente.pdf' },
+      stored_name: { type: 'string', example: '1725030000000-uuid.pdf' },
+      path: { type: 'string', example: 'uploads/user-documents/1725030000000-uuid.pdf' },
+      mime_type: { type: 'string', enum: ['application/pdf', 'image/jpeg', 'image/png'] },
+      size: { type: 'integer', example: 154238 },
+      document_type: { type: 'string', example: 'IDENTITY' },
+      uploaded_at: { type: 'string', format: 'date-time' },
+    },
+  },
+
+  UserDocumentUpload: {
+    type: 'object',
+    required: ['file', 'document_type'],
+    properties: {
+      file: { type: 'string', format: 'binary' },
+      document_type: { type: 'string', enum: Object.values(USER_DOCUMENT_TYPES), example: USER_DOCUMENT_TYPES.IDENTITY },
     },
   },
 
@@ -223,9 +251,9 @@ const swaggerSpecs = swaggerJSDoc({
     openapi: '3.0.0',
     info: {
       title: 'ShipNow API',
-      version: '1.6.0',
+      version: '1.7.0',
       description:
-        'API académica de ShipNow con usuarios, pedidos, entregas, mocks, logging y documentación interactiva con Swagger/OpenAPI.',
+        'API académica de ShipNow con usuarios, pedidos, entregas, carga de archivos con Multer, mocks, logging y documentación interactiva con Swagger/OpenAPI.',
     },
     servers: [
       {

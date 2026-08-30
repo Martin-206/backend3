@@ -144,3 +144,52 @@ paths:
           $ref: '#/components/responses/NotFoundResponse'
         '500':
           $ref: '#/components/responses/InternalErrorResponse'
+
+  /api/deliveries/{id}/proofs:
+    post:
+      tags: [Deliveries]
+      summary: Subir un comprobante de entrega
+      description: "Guarda el archivo en uploads/delivery-proofs y registra sus metadatos en la entrega. Campo esperado para el archivo: file."
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+          description: ObjectId de la entrega.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Comprobante cargado y asociado correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  message: { type: string, example: Comprobante cargado correctamente. }
+                  payload:
+                    $ref: '#/components/schemas/Delivery'
+        '400':
+          description: Archivo faltante, tipo no permitido o campo de archivo inesperado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '413':
+          description: El archivo supera el máximo de 5 MB.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '500':
+          $ref: '#/components/responses/InternalErrorResponse'

@@ -20,5 +20,11 @@ export const ERROR_CODES = Object.freeze({
   DELIVERY_ALREADY_EXISTS: Object.freeze({ code: 'DELIVERY_ALREADY_EXISTS', statusCode: 409, message: 'El pedido ya tiene una entrega asociada.' }),
   DUPLICATE_RESOURCE: Object.freeze({ code: 'DUPLICATE_RESOURCE', statusCode: 409, message: 'El registro ya existe.' }),
   MOCK_INSERTION_FAILED: Object.freeze({ code: 'MOCK_INSERTION_FAILED', statusCode: 500, message: 'No se pudieron insertar los datos de prueba.' }),
+  FILE_REQUIRED: Object.freeze({ code: 'FILE_REQUIRED', statusCode: 400, message: 'Debe enviar un archivo.' }),
+  INVALID_FILE_TYPE: Object.freeze({ code: 'INVALID_FILE_TYPE', statusCode: 400, message: 'El tipo de archivo no está permitido.' }),
+  FILE_TOO_LARGE: Object.freeze({ code: 'FILE_TOO_LARGE', statusCode: 413, message: 'El archivo supera el tamaño máximo permitido.' }),
+  INVALID_DOCUMENT_TYPE: Object.freeze({ code: 'INVALID_DOCUMENT_TYPE', statusCode: 400, message: 'El tipo de documento indicado no es válido.' }),
+  UNEXPECTED_FILE_FIELD: Object.freeze({ code: 'UNEXPECTED_FILE_FIELD', statusCode: 400, message: 'El campo de archivo enviado no coincide con el esperado.' }),
+  FILE_SAVE_ERROR: Object.freeze({ code: 'FILE_SAVE_ERROR', statusCode: 500, message: 'No se pudo guardar o asociar el archivo.' }),
   INTERNAL_ERROR: Object.freeze({ code: 'INTERNAL_ERROR', statusCode: 500, message: 'Error interno del servidor.' }),
 });

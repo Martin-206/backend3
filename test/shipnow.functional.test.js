@@ -61,6 +61,17 @@ async function createTestOrder(userId, overrides = {}) {
   return response.body.payload;
 }
 
+async function createTestDelivery(orderId, overrides = {}) {
+  const response = await request.post('/api/deliveries').send({
+    order: orderId,
+    estimated_at: '2026-09-01T18:00:00.000Z',
+    notes: 'Entrega de testing',
+    ...overrides,
+  });
+  expectSuccessResponse(response, 201);
+  return response.body.payload;
+}
+
 describe('ShipNow - Testing funcional', function () {
   describe('Users', function () {
     it('GET /api/users obtiene usuarios con la estructura esperada', async function () {
@@ -240,6 +251,74 @@ describe('ShipNow - Testing funcional', function () {
       expect(response.status).to.equal(200);
       expect(response.headers['content-type']).to.match(/text\/html/);
       expect(response.text).to.include('Swagger UI');
+    });
+  });
+
+  describe('Uploads - Módulo 7', function () {
+    it('POST /api/users/:id/documents carga un documento válido y guarda sus metadatos', async function () {
+      const user = await createTestUser();
+      const response = await request
+        .post(`/api/users/${user._id}/documents`)
+        .field('document_type', 'IDENTITY')
+        .attach('file', Buffer.from('%PDF-1.4 archivo de prueba'), { filename: 'dni.pdf', contentType: 'application/pdf' });
+
+      expectSuccessResponse(response, 201);
+      expect(response.body).to.have.property('message').that.is.a('string');
+      expect(response.body.payload.documents).to.be.an('array').with.lengthOf(1);
+      const document = response.body.payload.documents[0];
+      expect(document).to.include.all.keys('original_name', 'stored_name', 'path', 'mime_type', 'size', 'document_type', 'uploaded_at');
+      expect(document.original_name).to.equal('dni.pdf');
+      expect(document.mime_type).to.equal('application/pdf');
+      expect(document.document_type).to.equal('IDENTITY');
+      expect(document.path).to.match(/^uploads\/user-documents\//);
+    });
+
+    it('rechaza la carga de documento cuando falta el archivo', async function () {
+      const user = await createTestUser();
+      const response = await request
+        .post(`/api/users/${user._id}/documents`)
+        .field('document_type', 'IDENTITY');
+      expectErrorResponse(response, 400, 'FILE_REQUIRED');
+      expect(response.body.error.details).to.have.property('expectedField', 'file');
+    });
+
+    it('rechaza un tipo de documento inválido', async function () {
+      const user = await createTestUser();
+      const response = await request
+        .post(`/api/users/${user._id}/documents`)
+        .field('document_type', 'INVENTADO')
+        .attach('file', Buffer.from('%PDF-1.4 archivo de prueba'), { filename: 'doc.pdf', contentType: 'application/pdf' });
+      expectErrorResponse(response, 400, 'INVALID_DOCUMENT_TYPE');
+      expect(response.body.error.details.allowedValues).to.be.an('array').and.include('IDENTITY');
+    });
+
+    it('rechaza un tipo MIME no permitido', async function () {
+      const user = await createTestUser();
+      const response = await request
+        .post(`/api/users/${user._id}/documents`)
+        .field('document_type', 'IDENTITY')
+        .attach('file', Buffer.from('texto'), { filename: 'archivo.txt', contentType: 'text/plain' });
+      expectErrorResponse(response, 400, 'INVALID_FILE_TYPE');
+    });
+
+    it('POST /api/deliveries/:id/proofs carga un comprobante válido', async function () {
+      const user = await createTestUser();
+      const order = await createTestOrder(user._id);
+      const delivery = await createTestDelivery(order._id);
+      const response = await request
+        .post(`/api/deliveries/${delivery._id}/proofs`)
+        .attach('file', Buffer.from('imagen de prueba'), { filename: 'comprobante.png', contentType: 'image/png' });
+      expectSuccessResponse(response, 201);
+      expect(response.body.payload.proofs).to.be.an('array').with.lengthOf(1);
+      expect(response.body.payload.proofs[0]).to.have.property('document_type', 'DELIVERY_PROOF');
+    });
+
+    it('comprobante sobre una entrega inexistente responde 404 con formato global', async function () {
+      const nonexistentId = new mongoose.Types.ObjectId().toString();
+      const response = await request
+        .post(`/api/deliveries/${nonexistentId}/proofs`)
+        .attach('file', Buffer.from('%PDF-1.4 comprobante'), { filename: 'comprobante.pdf', contentType: 'application/pdf' });
+      expectErrorResponse(response, 404, 'DELIVERY_NOT_FOUND');
     });
   });
 

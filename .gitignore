@@ -9,3 +9,12 @@ npm-debug.log*
 # Logs generados por Winston
 logs/*
 !logs/.gitkeep
+
+# Archivos subidos por Multer
+uploads/*
+!uploads/user-documents/
+!uploads/delivery-proofs/
+uploads/user-documents/*
+!uploads/user-documents/.gitkeep
+uploads/delivery-proofs/*
+!uploads/delivery-proofs/.gitkeep

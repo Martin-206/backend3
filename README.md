@@ -1,6 +1,6 @@
-# ShipNow API — Pre-entrega Módulo 6
+# ShipNow API — Pre-entrega Módulo 7
 
-API académica desarrollada con Node.js, Express y MongoDB. El proyecto mantiene arquitectura por capas, mocking, manejo centralizado de errores, logging con Winston y documentación interactiva con Swagger/OpenAPI y testing funcional con Mocha, Chai y Supertest.
+API académica desarrollada con Node.js, Express y MongoDB. El proyecto mantiene arquitectura por capas, mocking, manejo centralizado de errores, logging con Winston y documentación interactiva con Swagger/OpenAPI, testing funcional con Mocha/Chai/Supertest y carga de archivos con Multer.
 
 ```text
 Route → Controller → Service → Repository → Model → MongoDB
@@ -79,6 +79,7 @@ Swagger incluye schemas reutilizables para usuarios, pedidos, entregas, item de 
 | POST | `/api/users` | Crear un usuario |
 | PATCH | `/api/users/:id` | Actualizar un usuario |
 | DELETE | `/api/users/:id` | Eliminar lógicamente un usuario |
+| POST | `/api/users/:id/documents` | Subir un documento (`multipart/form-data`) |
 
 Filtros opcionales: `role` y `search`.
 
@@ -136,6 +137,7 @@ El usuario debe existir y `tracking_code` debe ser único.
 | POST | `/api/deliveries` | Crear una entrega |
 | PATCH | `/api/deliveries/:id` | Actualizar una entrega |
 | DELETE | `/api/deliveries/:id` | Eliminar lógicamente una entrega |
+| POST | `/api/deliveries/:id/proofs` | Subir un comprobante (`multipart/form-data`) |
 
 Filtros opcionales: `status`, `driver` y `order`.
 
@@ -389,3 +391,114 @@ Los tests verifican tanto el status HTTP como el formato centralizado definido p
 Los tests no dependen de información cargada previamente. Cuando necesitan relaciones, generan sus propios datos; por ejemplo, primero crean un usuario de testing y luego utilizan su `_id` para crear un pedido.
 
 Antes de cada test se eliminan los documentos de las colecciones de la base de testing. Al finalizar la suite se realiza una última limpieza y se cierra la conexión con MongoDB. Esto permite que los tests sean repetibles y evita que dependan del orden de ejecución.
+
+
+## Carga de archivos — Módulo 7
+
+La pre-entrega del Módulo 7 incorpora **Multer** para recibir archivos mediante `multipart/form-data`. La configuración está centralizada en:
+
+```text
+src/config/multer.js
+```
+
+Los routers no definen storage, límites ni filtros. Solo utilizan los middlewares preparados en:
+
+```text
+src/middlewares/upload.middleware.js
+```
+
+### Configuración
+
+- Tamaño máximo: **5 MB** por archivo.
+- Campo esperado: `file`.
+- Tipos MIME permitidos: `application/pdf`, `image/jpeg`, `image/png`.
+- Los nombres almacenados se generan con fecha + UUID para evitar colisiones.
+- Los archivos se guardan en disco; MongoDB conserva **solo metadatos**.
+
+Estructura de uploads:
+
+```text
+uploads/
+├── user-documents/
+└── delivery-proofs/
+```
+
+La carpeta `uploads` está excluida por `.gitignore`; los archivos subidos no deben enviarse al repositorio.
+
+### Documentos de usuario
+
+```http
+POST /api/users/:id/documents
+Content-Type: multipart/form-data
+```
+
+Campos:
+
+- `file`: archivo obligatorio.
+- `document_type`: obligatorio. Valores: `IDENTITY`, `ADDRESS_PROOF`, `LICENSE`, `OTHER`.
+
+El usuario debe existir. Los metadatos se agregan al array `documents` del usuario.
+
+### Comprobantes de entrega
+
+```http
+POST /api/deliveries/:id/proofs
+Content-Type: multipart/form-data
+```
+
+Campo:
+
+- `file`: archivo obligatorio.
+
+La entrega debe existir. Los metadatos se agregan al array `proofs` y `document_type` se registra como `DELIVERY_PROOF`.
+
+### Metadatos persistidos
+
+Cada archivo asociado guarda únicamente:
+
+```text
+original_name
+stored_name
+path
+mime_type
+size
+document_type
+uploaded_at
+```
+
+El contenido binario nunca se almacena en MongoDB.
+
+### Errores de archivos
+
+Los errores mantienen el formato global del proyecto. Se contemplan:
+
+- `FILE_REQUIRED` → archivo faltante.
+- `INVALID_FILE_TYPE` → MIME no permitido.
+- `FILE_TOO_LARGE` → supera 5 MB.
+- `INVALID_DOCUMENT_TYPE` → tipo de documento no permitido.
+- `UNEXPECTED_FILE_FIELD` → el campo de archivo no es `file`.
+- `FILE_SAVE_ERROR` → error al guardar o asociar el archivo.
+- `USER_NOT_FOUND` / `DELIVERY_NOT_FOUND` → entidad asociada inexistente.
+
+Si Multer ya guardó el archivo pero luego falla una validación de entidad o documento, el archivo se elimina para evitar archivos aislados.
+
+### Logging de uploads
+
+Winston registra cargas exitosas, comprobantes asociados, intentos de tipos MIME no permitidos y errores de guardado/asociación.
+
+### Swagger
+
+Los dos endpoints están documentados como `multipart/form-data`, indicando el campo `file`, el tipo de documento cuando corresponde, respuestas exitosas y errores esperados.
+
+### Tests agregados para Módulo 7
+
+La suite funcional agrega casos para:
+
+- documento de usuario cargado correctamente;
+- archivo faltante;
+- tipo de documento inválido;
+- tipo MIME no permitido;
+- comprobante de entrega cargado correctamente;
+- comprobante asociado a una entrega inexistente.
+
+Además, `test/setup.js` elimina la carpeta `uploads` entre pruebas para mantener los tests controlados y repetibles.

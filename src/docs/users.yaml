@@ -141,3 +141,47 @@ paths:
           $ref: '#/components/responses/NotFoundResponse'
         '500':
           $ref: '#/components/responses/InternalErrorResponse'
+
+  /api/users/{id}/documents:
+    post:
+      tags: [Users]
+      summary: Subir un documento de usuario
+      description: Guarda el archivo en uploads/user-documents y registra únicamente sus metadatos en el usuario.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+          description: ObjectId del usuario.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserDocumentUpload'
+      responses:
+        '201':
+          description: Documento cargado y asociado correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  message: { type: string, example: Documento cargado correctamente. }
+                  payload:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Archivo faltante, tipo de archivo inválido, campo inesperado o tipo de documento inválido.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '413':
+          description: El archivo supera el máximo de 5 MB.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '500':
+          $ref: '#/components/responses/InternalErrorResponse'

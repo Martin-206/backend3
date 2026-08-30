@@ -31,3 +31,10 @@ export const DELIVERY_STATUS = Object.freeze({
   DELIVERED: 'DELIVERED',
   FAILED: 'FAILED',
 });
+
+export const USER_DOCUMENT_TYPES = Object.freeze({
+  IDENTITY: 'IDENTITY',
+  ADDRESS_PROOF: 'ADDRESS_PROOF',
+  LICENSE: 'LICENSE',
+  OTHER: 'OTHER',
+});

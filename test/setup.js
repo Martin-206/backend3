@@ -1,3 +1,5 @@
+import fs from 'fs/promises';
+import path from 'path';
 import mongoose from 'mongoose';
 import { config } from '../src/config/index.js';
 
@@ -13,6 +15,11 @@ function assertSafeTestDatabase() {
   }
 }
 
+async function clearUploads() {
+  const uploadsPath = path.resolve('uploads');
+  await fs.rm(uploadsPath, { recursive: true, force: true });
+}
+
 async function clearDatabase() {
   const collections = Object.values(mongoose.connection.collections);
   await Promise.all(collections.map((collection) => collection.deleteMany({})));
@@ -26,10 +33,12 @@ export const mochaHooks = {
 
   async beforeEach() {
     await clearDatabase();
+    await clearUploads();
   },
 
   async afterAll() {
     await clearDatabase();
+    await clearUploads();
     await mongoose.disconnect();
   },
 };

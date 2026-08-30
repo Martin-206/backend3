@@ -1,7 +1,7 @@
 import DeliveryModel from '../models/delivery.model.js';
 
 const DELIVERY_PUBLIC_FIELDS =
-  'order driver status estimated_at delivered_at notes active createdAt updatedAt';
+  'order driver status estimated_at delivered_at notes active proofs createdAt updatedAt';
 
 class DeliveryRepository {
   static buildFilters(filters = {}) {
@@ -35,6 +35,16 @@ class DeliveryRepository {
     return DeliveryModel.findOne({ order: orderId, active: { $ne: false } })
       .select('_id order status')
       .lean();
+  }
+
+  static async addProof(id, metadata) {
+    const delivery = await DeliveryModel.findOneAndUpdate(
+      { _id: id, active: { $ne: false } },
+      { $push: { proofs: metadata } },
+      { new: true, runValidators: true },
+    );
+    if (!delivery) return null;
+    return this.getById(delivery._id);
   }
 
   static async create(deliveryData) {

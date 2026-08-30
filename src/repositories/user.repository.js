@@ -1,7 +1,7 @@
 import UserModel from '../models/user.model.js';
 
 const USER_PUBLIC_FIELDS =
-  'first_name last_name email role active createdAt updatedAt';
+  'first_name last_name email role active documents createdAt updatedAt';
 
 class UserRepository {
   static buildFilters(filters = {}) {
@@ -39,6 +39,15 @@ class UserRepository {
   }
 
 
+  static async addDocument(id, metadata) {
+    return UserModel.findOneAndUpdate(
+      { _id: id, active: true },
+      { $push: { documents: metadata } },
+      { new: true, runValidators: true },
+    )
+      .select(USER_PUBLIC_FIELDS)
+      .lean();
+  }
 
   static async create(userData) {
     const user = await UserModel.create(userData);
