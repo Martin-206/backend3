@@ -1,0 +1,258 @@
+import { expect } from 'chai';
+import mongoose from 'mongoose';
+import supertest from 'supertest';
+
+import app from '../src/app.js';
+import UserModel from '../src/models/user.model.js';
+import OrderModel from '../src/models/order.model.js';
+
+const request = supertest(app);
+
+function expectSuccessResponse(response, statusCode = 200) {
+  expect(response.status).to.equal(statusCode);
+  expect(response.body).to.be.an('object');
+  expect(response.body).to.have.property('status', 'success');
+}
+
+function expectErrorResponse(response, statusCode, errorCode) {
+  expect(response.status).to.equal(statusCode);
+  expect(response.body).to.be.an('object');
+  expect(response.body).to.have.property('status', 'error');
+  expect(response.body).to.have.property('error').that.is.an('object');
+  expect(response.body.error).to.have.property('code', errorCode);
+  expect(response.body.error).to.have.property('message').that.is.a('string').and.is.not.empty;
+}
+
+async function createTestUser(overrides = {}) {
+  const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const userData = {
+    first_name: 'Usuario',
+    last_name: 'Testing',
+    email: `testing-${unique}@shipnow.test`,
+    password: 'Test1234',
+    role: 'USER',
+    ...overrides,
+  };
+
+  const response = await request.post('/api/users').send(userData);
+  expectSuccessResponse(response, 201);
+  expect(response.body).to.have.property('payload').that.is.an('object');
+  expect(response.body.payload).to.have.property('_id');
+  return response.body.payload;
+}
+
+async function createTestOrder(userId, overrides = {}) {
+  const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const orderData = {
+    tracking_code: `SN-TEST-${unique}`,
+    user: userId,
+    description: 'Pedido creado por la suite funcional',
+    delivery_address: 'Calle Testing 123',
+    weight_kg: 2.5,
+    status: 'PENDING',
+    priority: 'NORMAL',
+    ...overrides,
+  };
+
+  const response = await request.post('/api/orders').send(orderData);
+  expectSuccessResponse(response, 201);
+  expect(response.body).to.have.property('payload').that.is.an('object');
+  expect(response.body.payload).to.have.property('_id');
+  return response.body.payload;
+}
+
+describe('ShipNow - Testing funcional', function () {
+  describe('Users', function () {
+    it('GET /api/users obtiene usuarios con la estructura esperada', async function () {
+      await createTestUser();
+
+      const response = await request.get('/api/users');
+
+      expectSuccessResponse(response);
+      expect(response.body).to.have.property('payload').that.is.an('array').with.lengthOf(1);
+      expect(response.body.payload[0]).to.include.all.keys(
+        '_id',
+        'first_name',
+        'last_name',
+        'email',
+        'role',
+        'active',
+      );
+      expect(response.body.payload[0]).to.not.have.property('password');
+    });
+  });
+
+  describe('Orders', function () {
+    it('GET /api/orders devuelve un listado correcto', async function () {
+      const user = await createTestUser();
+      await createTestOrder(user._id);
+
+      const response = await request.get('/api/orders');
+
+      expectSuccessResponse(response);
+      expect(response.body.payload).to.be.an('array').with.lengthOf(1);
+      expect(response.body.payload[0]).to.include.all.keys(
+        '_id',
+        'tracking_code',
+        'user',
+        'description',
+        'delivery_address',
+        'weight_kg',
+        'status',
+        'priority',
+      );
+    });
+
+    it('POST /api/orders crea un pedido válido', async function () {
+      const user = await createTestUser();
+
+      const order = await createTestOrder(user._id);
+
+      expect(order.status).to.equal('PENDING');
+      expect(order.priority).to.equal('NORMAL');
+      expect(order.description).to.equal('Pedido creado por la suite funcional');
+      expect(order.user).to.be.an('object');
+      expect(order.user).to.have.property('_id', user._id);
+    });
+
+    it('GET /api/orders/:id consulta un pedido existente por ID', async function () {
+      const user = await createTestUser();
+      const order = await createTestOrder(user._id);
+
+      const response = await request.get(`/api/orders/${order._id}`);
+
+      expectSuccessResponse(response);
+      expect(response.body.payload).to.be.an('object');
+      expect(response.body.payload).to.have.property('_id', order._id);
+      expect(response.body.payload).to.have.property('tracking_code', order.tracking_code);
+    });
+
+    it('PATCH /api/orders/:id actualiza el estado con un valor permitido', async function () {
+      const user = await createTestUser();
+      const order = await createTestOrder(user._id);
+
+      const response = await request
+        .patch(`/api/orders/${order._id}`)
+        .send({ status: 'CONFIRMED' });
+
+      expectSuccessResponse(response);
+      expect(response.body.payload).to.have.property('_id', order._id);
+      expect(response.body.payload).to.have.property('status', 'CONFIRMED');
+    });
+
+    it('POST /api/orders rechaza datos incompletos con el formato global de error', async function () {
+      const response = await request.post('/api/orders').send({
+        description: 'Pedido incompleto',
+      });
+
+      expectErrorResponse(response, 400, 'INVALID_INPUT');
+      expect(response.body.error).to.have.property('details').that.is.an('object');
+      expect(response.body.error.details).to.have.property('missingFields').that.is.an('array');
+    });
+
+    it('GET /api/orders/:id responde 404 cuando el pedido no existe', async function () {
+      const nonexistentId = new mongoose.Types.ObjectId().toString();
+
+      const response = await request.get(`/api/orders/${nonexistentId}`);
+
+      expectErrorResponse(response, 404, 'ORDER_NOT_FOUND');
+    });
+
+    it('PATCH /api/orders/:id rechaza un estado inválido', async function () {
+      const user = await createTestUser();
+      const order = await createTestOrder(user._id);
+
+      const response = await request
+        .patch(`/api/orders/${order._id}`)
+        .send({ status: 'INVALID_STATUS' });
+
+      expectErrorResponse(response, 400, 'INVALID_ORDER_STATUS');
+      expect(response.body.error.details).to.have.property('allowedValues').that.is.an('array');
+    });
+  });
+
+  describe('Mocks', function () {
+    it('GET /api/mocks genera una vista previa controlada sin persistir datos', async function () {
+      const response = await request.get('/api/mocks?users=2&drivers=1&orders=3');
+
+      expectSuccessResponse(response);
+      expect(response.body.payload).to.include.all.keys(
+        'users',
+        'drivers',
+        'orders',
+        'deliveries',
+      );
+      expect(response.body.payload.users).to.have.lengthOf(3);
+      expect(response.body.payload.drivers).to.have.lengthOf(1);
+      expect(response.body.payload.orders).to.have.lengthOf(3);
+      expect(response.body.payload.deliveries).to.have.lengthOf(3);
+      expect(await UserModel.countDocuments()).to.equal(0);
+      expect(await OrderModel.countDocuments()).to.equal(0);
+    });
+
+    it('POST /api/mocks/generate-data inserta datos de prueba controlados', async function () {
+      const response = await request.post('/api/mocks/generate-data').send({
+        users: 2,
+        drivers: 1,
+        orders: 3,
+      });
+
+      expectSuccessResponse(response, 201);
+      expect(response.body).to.have.property('message').that.is.a('string');
+      expect(response.body.payload).to.deep.equal({
+        users: 3,
+        drivers: 1,
+        orders: 3,
+        deliveries: 3,
+      });
+      expect(await UserModel.countDocuments()).to.equal(3);
+      expect(await OrderModel.countDocuments()).to.equal(3);
+    });
+
+    it('GET /api/mocks rechaza cantidades inválidas', async function () {
+      const response = await request.get('/api/mocks?users=-1&drivers=1&orders=1');
+
+      expectErrorResponse(response, 400, 'INVALID_MOCK_COUNTS');
+      expect(response.body.error).to.have.property('details').that.is.an('object');
+    });
+  });
+
+  describe('Logger y Swagger', function () {
+    it('GET /api/logger/test responde correctamente y declara los niveles probados', async function () {
+      const response = await request.get('/api/logger/test');
+
+      expectSuccessResponse(response);
+      expect(response.body).to.have.property('message').that.is.a('string');
+      expect(response.body.payload).to.have.property('levels').that.is.an('array');
+      expect(response.body.payload.levels).to.include.members([
+        'debug',
+        'http',
+        'info',
+        'warning',
+        'error',
+        'fatal',
+      ]);
+    });
+
+    it('GET /api/docs/ permite acceder a Swagger UI', async function () {
+      const response = await request.get('/api/docs/');
+
+      expect(response.status).to.equal(200);
+      expect(response.headers['content-type']).to.match(/text\/html/);
+      expect(response.text).to.include('Swagger UI');
+    });
+  });
+
+  describe('Errores globales', function () {
+    it('una ruta inexistente responde 404 con ROUTE_NOT_FOUND', async function () {
+      const response = await request.get('/api/ruta-inexistente-testing');
+
+      expectErrorResponse(response, 404, 'ROUTE_NOT_FOUND');
+      expect(response.body.error).to.have.property('details').that.is.an('object');
+      expect(response.body.error.details).to.include({
+        method: 'GET',
+        path: '/api/ruta-inexistente-testing',
+      });
+    });
+  });
+});

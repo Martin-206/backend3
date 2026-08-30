@@ -1,6 +1,6 @@
-# ShipNow API — Pre-entrega Módulo 5
+# ShipNow API — Pre-entrega Módulo 6
 
-API académica desarrollada con Node.js, Express y MongoDB. El proyecto mantiene arquitectura por capas, mocking, manejo centralizado de errores, logging con Winston y documentación interactiva con Swagger/OpenAPI.
+API académica desarrollada con Node.js, Express y MongoDB. El proyecto mantiene arquitectura por capas, mocking, manejo centralizado de errores, logging con Winston y documentación interactiva con Swagger/OpenAPI y testing funcional con Mocha, Chai y Supertest.
 
 ```text
 Route → Controller → Service → Repository → Model → MongoDB
@@ -260,3 +260,132 @@ La carpeta está excluida del repositorio mediante `.gitignore`.
 - **Model:** define los schemas de persistencia.
 - **Middleware global:** normaliza errores y mantiene respuestas consistentes.
 - **Swagger:** documenta la API sin mezclar la configuración con la lógica de las rutas.
+
+## Testing funcional — Módulo 6
+
+La pre-entrega del Módulo 6 incorpora una suite de tests funcionales automatizados con **Mocha**, **Chai** y **Supertest**.
+
+- **Mocha** organiza y ejecuta la suite.
+- **Chai** valida status HTTP, estructura y propiedades de las respuestas.
+- **Supertest** realiza peticiones HTTP directamente sobre la aplicación Express, sin necesidad de iniciar manualmente un puerto.
+
+### Separación entre aplicación y servidor
+
+La configuración de Express se encuentra en:
+
+```text
+src/app.js
+```
+
+Ese archivo exporta `app` pero no ejecuta `app.listen()`. El levantamiento real del servidor queda en:
+
+```text
+src/index.js
+```
+
+De esta forma los tests pueden importar la aplicación directamente mediante Supertest.
+
+### Entorno de testing
+
+Los tests utilizan variables de entorno propias y una base MongoDB separada de desarrollo.
+
+Copiar:
+
+```text
+.env.test.example
+```
+
+como:
+
+```text
+.env.test
+```
+
+Configuración de ejemplo:
+
+```env
+PORT=8081
+MONGODB_URI=mongodb://127.0.0.1:27017/shipnow_test
+NODE_ENV=test
+```
+
+Por seguridad, la suite verifica que `NODE_ENV` sea `test` y que `MONGODB_URI` contenga la palabra `test` antes de realizar cualquier limpieza.
+
+> La base de testing debe contener únicamente datos descartables. No utilizar una base de desarrollo o producción.
+
+### Instalación y ejecución
+
+Instalar las dependencias:
+
+```bash
+npm install
+```
+
+Ejecutar toda la suite:
+
+```bash
+npm test
+```
+
+Durante desarrollo también puede utilizarse:
+
+```bash
+npm run test:watch
+```
+
+### Endpoints cubiertos
+
+La suite funcional cubre:
+
+- `GET /api/users`
+- `GET /api/orders`
+- `POST /api/orders`
+- `GET /api/orders/:id`
+- `PATCH /api/orders/:id`
+- `GET /api/mocks`
+- `POST /api/mocks/generate-data`
+- `GET /api/logger/test`
+- `GET /api/docs/`
+- una ruta inexistente para comprobar el middleware global de 404.
+
+### Casos exitosos
+
+Se valida, entre otros comportamientos:
+
+- listado de usuarios;
+- listado de pedidos;
+- creación de un pedido con un usuario generado por el propio test;
+- consulta de un pedido por ID;
+- actualización de un estado permitido;
+- preview de mocks sin persistencia;
+- inserción real de datos mock en la base de testing;
+- acceso al endpoint de logger;
+- acceso a Swagger UI.
+
+### Casos de error
+
+También se comprueban:
+
+- pedido con datos incompletos → `400 INVALID_INPUT`;
+- pedido inexistente → `404 ORDER_NOT_FOUND`;
+- estado de pedido inválido → `400 INVALID_ORDER_STATUS`;
+- cantidades de mocks inválidas → `400 INVALID_MOCK_COUNTS`;
+- ruta inexistente → `404 ROUTE_NOT_FOUND`.
+
+Los tests verifican tanto el status HTTP como el formato centralizado definido por el proyecto:
+
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "ORDER_NOT_FOUND",
+    "message": "Pedido no encontrado."
+  }
+}
+```
+
+### Datos controlados y limpieza
+
+Los tests no dependen de información cargada previamente. Cuando necesitan relaciones, generan sus propios datos; por ejemplo, primero crean un usuario de testing y luego utilizan su `_id` para crear un pedido.
+
+Antes de cada test se eliminan los documentos de las colecciones de la base de testing. Al finalizar la suite se realiza una última limpieza y se cierra la conexión con MongoDB. Esto permite que los tests sean repetibles y evita que dependan del orden de ejecución.

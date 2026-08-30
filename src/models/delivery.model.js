@@ -22,6 +22,7 @@ const deliverySchema = new mongoose.Schema(
     estimated_at: { type: Date, required: true },
     delivered_at: { type: Date, default: null },
     notes: { type: String, default: '', trim: true },
+    active: { type: Boolean, default: true },
   },
   { timestamps: true, versionKey: false },
 );

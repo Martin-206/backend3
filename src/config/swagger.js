@@ -223,7 +223,7 @@ const swaggerSpecs = swaggerJSDoc({
     openapi: '3.0.0',
     info: {
       title: 'ShipNow API',
-      version: '1.5.0',
+      version: '1.6.0',
       description:
         'API académica de ShipNow con usuarios, pedidos, entregas, mocks, logging y documentación interactiva con Swagger/OpenAPI.',
     },
