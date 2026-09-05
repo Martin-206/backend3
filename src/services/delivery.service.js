@@ -5,6 +5,7 @@ import { DELIVERY_STATUS } from '../constants/index.js';
 import { CustomError } from '../errors/custom-error.js';
 import { ERROR_CODES } from '../errors/error-codes.js';
 import { logger } from '../config/logger.js';
+import { parsePagination, buildPaginationMeta } from '../utils/pagination.js';
 
 class DeliveryService {
   static validateRequiredFields(deliveryData = {}) {
@@ -46,7 +47,9 @@ class DeliveryService {
 
   static async getAll(filters = {}) {
     this.validateStatus(filters.status);
-    return DeliveryRepository.getAll(filters);
+    const pagination = parsePagination(filters);
+    const { items, total } = await DeliveryRepository.getAll(filters, pagination);
+    return { items, pagination: buildPaginationMeta({ ...pagination, total }) };
   }
 
   static async getById(id) {

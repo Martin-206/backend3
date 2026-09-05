@@ -23,6 +23,14 @@ paths:
           name: search
           schema: { type: string }
           description: Busca por tracking, descripción o dirección.
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+          description: Página solicitada.
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+          description: Cantidad máxima de resultados por página.
       responses:
         '200':
           description: Lista de pedidos obtenida correctamente.
@@ -36,6 +44,8 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Order'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
         '400':
           $ref: '#/components/responses/BadRequestResponse'
         '500':

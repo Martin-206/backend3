@@ -179,6 +179,18 @@ const schemas = {
     },
   },
 
+  Pagination: {
+    type: 'object',
+    properties: {
+      page: { type: 'integer', example: 1 },
+      limit: { type: 'integer', example: 20 },
+      total: { type: 'integer', example: 42 },
+      totalPages: { type: 'integer', example: 3 },
+      hasPrevPage: { type: 'boolean', example: false },
+      hasNextPage: { type: 'boolean', example: true },
+    },
+  },
+
   SuccessResponse: {
     type: 'object',
     required: ['status'],
@@ -251,9 +263,9 @@ const swaggerSpecs = swaggerJSDoc({
     openapi: '3.0.0',
     info: {
       title: 'ShipNow API',
-      version: '1.7.0',
+      version: '1.8.0',
       description:
-        'API académica de ShipNow con usuarios, pedidos, entregas, carga de archivos con Multer, mocks, logging y documentación interactiva con Swagger/OpenAPI.',
+        'API académica de ShipNow preparada para producción con paginación, health check, carga de archivos, testing y Docker.',
     },
     servers: [
       {
@@ -262,6 +274,7 @@ const swaggerSpecs = swaggerJSDoc({
       },
     ],
     tags: [
+      { name: 'System', description: 'Estado y salud de la API.' },
       { name: 'Users', description: 'Gestión de usuarios.' },
       { name: 'Orders', description: 'Gestión de pedidos.' },
       { name: 'Deliveries', description: 'Gestión de entregas.' },

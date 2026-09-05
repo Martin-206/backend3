@@ -2,6 +2,7 @@ import UserRepository from '../repositories/user.repository.js';
 import { USER_ROLES } from '../constants/index.js';
 import { CustomError } from '../errors/custom-error.js';
 import { ERROR_CODES } from '../errors/error-codes.js';
+import { parsePagination, buildPaginationMeta } from '../utils/pagination.js';
 
 class UserService {
   static validateRequiredFields(userData = {}, partial = false) {
@@ -23,7 +24,9 @@ class UserService {
         allowedValues: Object.values(USER_ROLES),
       });
     }
-    return UserRepository.getAll(filters);
+    const pagination = parsePagination(filters);
+    const { items, total } = await UserRepository.getAll(filters, pagination);
+    return { items, pagination: buildPaginationMeta({ ...pagination, total }) };
   }
 
   static async getById(id) {

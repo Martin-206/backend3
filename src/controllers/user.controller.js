@@ -3,8 +3,12 @@ import UploadService from '../services/upload.service.js';
 
 class UserController {
   static async getAll(req, res) {
-    const users = await UserService.getAll(req.query);
-    return res.status(200).json({ status: 'success', payload: users });
+    const result = await UserService.getAll(req.query);
+    return res.status(200).json({
+      status: 'success',
+      payload: result.items,
+      pagination: result.pagination,
+    });
   }
 
   static async getById(req, res) {

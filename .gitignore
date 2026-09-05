@@ -1,6 +1,7 @@
 node_modules/
 .env
 .env.test
+.env.production
 npm-debug.log*
 .DS_Store
 
@@ -18,3 +19,8 @@ uploads/user-documents/*
 !uploads/user-documents/.gitkeep
 uploads/delivery-proofs/*
 !uploads/delivery-proofs/.gitkeep
+
+# Coverage y temporales
+coverage/
+tmp/
+temp/

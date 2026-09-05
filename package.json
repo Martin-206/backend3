@@ -1,7 +1,7 @@
 {
   "name": "shipnow-api",
-  "version": "1.7.0",
-  "description": "ShipNow API - Pre-entrega Modulo 7 con carga de archivos y comprobantes",
+  "version": "1.8.0",
+  "description": "ShipNow API - Pre-entrega Modulo 8 con performance, producción y Docker",
   "license": "ISC",
   "author": "Martin Contreras",
   "type": "module",

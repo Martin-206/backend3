@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const REQUIRED_ENV_VARS = ['PORT', 'MONGODB_URI', 'NODE_ENV'];
+const REQUIRED_ENV_VARS = ['PORT', 'MONGODB_URI', 'NODE_ENV', 'LOG_LEVEL'];
 
 const missingVariables = REQUIRED_ENV_VARS.filter(
   (variableName) => !process.env[variableName]?.trim(),
@@ -26,8 +26,16 @@ if (!validEnvironments.includes(process.env.NODE_ENV)) {
   );
 }
 
+const validLogLevels = ['fatal', 'error', 'warning', 'info', 'http', 'debug'];
+if (!validLogLevels.includes(process.env.LOG_LEVEL)) {
+  throw new Error(
+    `LOG_LEVEL debe ser uno de estos valores: ${validLogLevels.join(', ')}.`,
+  );
+}
+
 export const config = Object.freeze({
   PORT: port,
   MONGODB_URI: process.env.MONGODB_URI,
   NODE_ENV: process.env.NODE_ENV,
+  LOG_LEVEL: process.env.LOG_LEVEL,
 });

@@ -14,13 +14,20 @@ class DeliveryRepository {
     return query;
   }
 
-  static async getAll(filters = {}) {
-    return DeliveryModel.find(this.buildFilters(filters))
-      .select(DELIVERY_PUBLIC_FIELDS)
-      .populate('order', 'tracking_code status priority delivery_address')
-      .populate('driver', 'license_number vehicle available')
-      .sort({ createdAt: -1 })
-      .lean();
+  static async getAll(filters = {}, pagination) {
+    const query = this.buildFilters(filters);
+    const [items, total] = await Promise.all([
+      DeliveryModel.find(query)
+        .select(DELIVERY_PUBLIC_FIELDS)
+        .populate('order', 'tracking_code status priority delivery_address')
+        .populate('driver', 'license_number vehicle available')
+        .sort({ createdAt: -1 })
+        .skip(pagination.skip)
+        .limit(pagination.limit)
+        .lean(),
+      DeliveryModel.countDocuments(query),
+    ]);
+    return { items, total };
   }
 
   static async getById(id) {

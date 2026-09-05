@@ -50,7 +50,7 @@ const errorFileTransport = new winston.transports.DailyRotateFile({
 
 const logger = winston.createLogger({
   levels: LOG_LEVELS,
-  level: config.NODE_ENV === 'development' ? 'debug' : 'info',
+  level: config.LOG_LEVEL,
   transports: [
     new winston.transports.Console({ format: consoleFormat }),
     errorFileTransport,

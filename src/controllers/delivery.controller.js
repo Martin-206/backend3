@@ -3,8 +3,12 @@ import UploadService from '../services/upload.service.js';
 
 class DeliveryController {
   static async getAll(req, res) {
-    const deliveries = await DeliveryService.getAll(req.query);
-    return res.status(200).json({ status: 'success', payload: deliveries });
+    const result = await DeliveryService.getAll(req.query);
+    return res.status(200).json({
+      status: 'success',
+      payload: result.items,
+      pagination: result.pagination,
+    });
   }
 
   static async getById(req, res) {

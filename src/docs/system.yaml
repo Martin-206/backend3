@@ -1,0 +1,19 @@
+paths:
+  /health:
+    get:
+      tags: [System]
+      summary: Health check de ShipNow
+      description: Devuelve estado básico de la API sin exponer datos sensibles.
+      responses:
+        '200':
+          description: API disponible.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  service: { type: string, example: ShipNow API }
+                  environment: { type: string, example: production }
+                  uptime: { type: number, example: 123.45 }
+                  timestamp: { type: string, format: date-time }

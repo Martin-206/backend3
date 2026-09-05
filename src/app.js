@@ -20,8 +20,10 @@ app.use(requestLogger);
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'success',
-    message: 'ShipNow API funcionando',
+    service: 'ShipNow API',
     environment: config.NODE_ENV,
+    uptime: Number(process.uptime().toFixed(2)),
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -29,8 +31,11 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 app.use('/api/products', productsRoutes);
 app.use('/api/users', usersRoutes);
-app.use('/api/mocks', mocksRoutes);
-app.use('/api/logger', loggerRoutes);
+// Endpoints internos habilitados solo fuera de producción.
+if (config.NODE_ENV !== 'production') {
+  app.use('/api/mocks', mocksRoutes);
+  app.use('/api/logger', loggerRoutes);
+}
 app.use('/api/orders', ordersRoutes);
 app.use('/api/deliveries', deliveriesRoutes);
 

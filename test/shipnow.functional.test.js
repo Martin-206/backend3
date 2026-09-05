@@ -81,6 +81,7 @@ describe('ShipNow - Testing funcional', function () {
 
       expectSuccessResponse(response);
       expect(response.body).to.have.property('payload').that.is.an('array').with.lengthOf(1);
+      expect(response.body.pagination).to.include({ page: 1, limit: 20, total: 1 });
       expect(response.body.payload[0]).to.include.all.keys(
         '_id',
         'first_name',
@@ -90,6 +91,7 @@ describe('ShipNow - Testing funcional', function () {
         'active',
       );
       expect(response.body.payload[0]).to.not.have.property('password');
+      expect(response.body.pagination).to.include({ page: 1, limit: 20, total: 1 });
     });
   });
 
@@ -179,6 +181,41 @@ describe('ShipNow - Testing funcional', function () {
 
       expectErrorResponse(response, 400, 'INVALID_ORDER_STATUS');
       expect(response.body.error.details).to.have.property('allowedValues').that.is.an('array');
+    });
+  });
+
+  describe('Performance y health - Módulo 8', function () {
+    it('GET /api/users respeta limit y devuelve metadatos de paginación', async function () {
+      await createTestUser();
+      await createTestUser();
+      await createTestUser();
+
+      const response = await request.get('/api/users?page=2&limit=2');
+
+      expectSuccessResponse(response);
+      expect(response.body.payload).to.have.lengthOf(1);
+      expect(response.body.pagination).to.deep.include({
+        page: 2,
+        limit: 2,
+        total: 3,
+        totalPages: 2,
+        hasPrevPage: true,
+        hasNextPage: false,
+      });
+    });
+
+    it('GET /api/orders rechaza un limit mayor al máximo permitido', async function () {
+      const response = await request.get('/api/orders?limit=101');
+      expectErrorResponse(response, 400, 'INVALID_INPUT');
+    });
+
+    it('GET /health devuelve estado, entorno, uptime y timestamp', async function () {
+      const response = await request.get('/health');
+      expectSuccessResponse(response);
+      expect(response.body).to.have.property('service', 'ShipNow API');
+      expect(response.body).to.have.property('environment', 'test');
+      expect(response.body).to.have.property('uptime').that.is.a('number');
+      expect(response.body).to.have.property('timestamp').that.is.a('string');
     });
   });
 

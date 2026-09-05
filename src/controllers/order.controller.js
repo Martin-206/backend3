@@ -2,8 +2,12 @@ import OrderService from '../services/order.service.js';
 
 class OrderController {
   static async getAll(req, res) {
-    const orders = await OrderService.getAll(req.query);
-    return res.status(200).json({ status: 'success', payload: orders });
+    const result = await OrderService.getAll(req.query);
+    return res.status(200).json({
+      status: 'success',
+      payload: result.items,
+      pagination: result.pagination,
+    });
   }
 
   static async getById(req, res) {

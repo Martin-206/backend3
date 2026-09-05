@@ -19,11 +19,18 @@ class UserRepository {
     return query;
   }
 
-  static async getAll(filters = {}) {
-    return UserModel.find(this.buildFilters(filters))
-      .select(USER_PUBLIC_FIELDS)
-      .sort({ createdAt: -1 })
-      .lean();
+  static async getAll(filters = {}, pagination) {
+    const query = this.buildFilters(filters);
+    const [items, total] = await Promise.all([
+      UserModel.find(query)
+        .select(USER_PUBLIC_FIELDS)
+        .sort({ createdAt: -1 })
+        .skip(pagination.skip)
+        .limit(pagination.limit)
+        .lean(),
+      UserModel.countDocuments(query),
+    ]);
+    return { items, total };
   }
 
   static async getById(id) {

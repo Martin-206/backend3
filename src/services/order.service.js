@@ -4,6 +4,7 @@ import { ORDER_PRIORITY, ORDER_STATUS } from '../constants/index.js';
 import { CustomError } from '../errors/custom-error.js';
 import { ERROR_CODES } from '../errors/error-codes.js';
 import { logger } from '../config/logger.js';
+import { parsePagination, buildPaginationMeta } from '../utils/pagination.js';
 
 class OrderService {
   static validateRequiredFields(orderData = {}) {
@@ -54,7 +55,9 @@ class OrderService {
   static async getAll(filters = {}) {
     this.validateStatus(filters.status);
     this.validatePriority(filters.priority);
-    return OrderRepository.getAll(filters);
+    const pagination = parsePagination(filters);
+    const { items, total } = await OrderRepository.getAll(filters, pagination);
+    return { items, pagination: buildPaginationMeta({ ...pagination, total }) };
   }
 
   static async getById(id) {

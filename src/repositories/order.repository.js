@@ -21,12 +21,19 @@ class OrderRepository {
     return query;
   }
 
-  static async getAll(filters = {}) {
-    return OrderModel.find(this.buildFilters(filters))
-      .select(ORDER_PUBLIC_FIELDS)
-      .populate('user', 'first_name last_name email role')
-      .sort({ createdAt: -1 })
-      .lean();
+  static async getAll(filters = {}, pagination) {
+    const query = this.buildFilters(filters);
+    const [items, total] = await Promise.all([
+      OrderModel.find(query)
+        .select(ORDER_PUBLIC_FIELDS)
+        .populate('user', 'first_name last_name email role')
+        .sort({ createdAt: -1 })
+        .skip(pagination.skip)
+        .limit(pagination.limit)
+        .lean(),
+      OrderModel.countDocuments(query),
+    ]);
+    return { items, total };
   }
 
   static async getById(id) {
